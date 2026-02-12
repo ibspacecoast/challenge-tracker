@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenge Tracker</title>
+    
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1, h2, h3 {
+            color: #2d3748;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: #f56565;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #718096;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 16px;
+            transition: border 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        /* PIN Pad Styles */
+        .pin-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .pin-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            border: 2px solid #cbd5e0;
+            transition: background 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: #667eea;
+            border-color: #667eea;
+        }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .pin-btn {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d3748;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pin-btn:hover {
+            background: #edf2f7;
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .pin-btn:active {
+            transform: scale(0.95);
+        }
+
+        .pin-btn .pin-sub {
+            font-size: 10px;
+            color: #a0aec0;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .pin-btn.backspace {
+            font-size: 18px;
+        }
+
+        .pin-btn.enter-btn {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            font-size: 16px;
+        }
+
+        .pin-btn.enter-btn:hover {
+            background: #5a67d8;
+        }
+
+        .pin-btn.enter-btn .pin-sub {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .member-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .member-item:hover {
+            background: #edf2f7;
+            transform: translateX(4px);
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 18px;
+        }
+
+        .member-stats {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .member-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .challenge-category {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .category-movement { background: #c6f6d5; color: #22543d; }
+        .category-food { background: #fed7d7; color: #742a2a; }
+        .category-sleep { background: #bee3f8; color: #2c5282; }
+        .category-connection { background: #faf089; color: #744210; }
+
+        .challenge-item {
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .challenge-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #48bb78;
+            transition: width 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .feed-item {
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feed-time {
+            color: #a0aec0;
+            font-size: 12px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #logProgressModal, #assignChallengeModal, #deleteConfirmModal {
+            z-index: 1100;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .streak-badge {
+            display: inline-block;
+            background: #f6ad55;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #718096;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .hidden { display: none !important; }
+
+        .pin-info {
+            background: #edf2f7;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #718096;
+            text-align: center;
+        }
+
+        .pin-info strong {
+            color: #4a5568;
+        }
+
+        @media (max-width: 768px) {
+            .member-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .member-actions {
+                margin-top: 12px;
+                width: 100%;
+            }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- LOADING SCREEN -->
+    <div id="loadingScreen" class="login-container">
+        <div class="card" style="text-align:center;">
+            <h1>Challenge Tracker</h1>
+            <p style="margin:24px 0; color:#667eea; font-size:18px;">Loading...</p>
+            <div style="margin:20px auto; width:50px; height:50px; border:4px solid #e2e8f0; border-top-color:#667eea; border-radius:50%; animation:spin 1s linear infinite;"></div>
+        </div>
+    </div>
+
+    <!-- LOGIN SCREEN: Pick who you are -->
+    <div id="loginScreen" class="login-container hidden">
+        <div class="card">
+            <h1 style="text-align:center;">Challenge Tracker</h1>
+
+            <!-- Step 1: Username -->
+            <div id="usernameStep">
+                <label>Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="off">
+                <button class="btn" style="width:100%;" onclick="submitUsername()">Next</button>
+                <p id="loginError" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
+            </div>
+
+            <!-- Step 2a: Coach Password (text input) -->
+            <div id="coachPasswordStep" class="hidden">
+                <p style="text-align:center; color:#718096; margin-bottom:16px;">Welcome back, Coach!</p>
+                <label>Password</label>
+                <input type="password" id="coachPassword" placeholder="Enter password" autocomplete="off">
+                <button class="btn" style="width:100%;" onclick="submitCoachPassword()">Login</button>
+                <button class="btn btn-secondary btn-small" style="width:100%; margin-top:8px;" onclick="backToUsername()">← Back</button>
+                <p id="loginError2" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
+            </div>
+
+            <!-- Step 2b: Member PIN Pad -->
+            <div id="memberPinStep" class="hidden">
+                <p id="memberPinName" style="text-align:center; color:#718096; margin-bottom:8px;"></p>
+                <p style="text-align:center; color:#a0aec0; font-size:14px; margin-bottom:4px;">Enter your 4-digit PIN</p>
+
+                <div class="pin-display">
+                    <div class="pin-dot" id="dot0"></div>
+                    <div class="pin-dot" id="dot1"></div>
+                    <div class="pin-dot" id="dot2"></div>
+                    <div class="pin-dot" id="dot3"></div>
+                </div>
+
+                <div class="pin-pad">
+                    <button class="pin-btn" onclick="pinPress('1')">1</button>
+                    <button class="pin-btn" onclick="pinPress('2')">2</button>
+                    <button class="pin-btn" onclick="pinPress('3')">3</button>
+                    <button class="pin-btn" onclick="pinPress('4')">4<span class="pin-sub">GHI</span></button>
+                    <button class="pin-btn" onclick="pinPress('5')">5<span class="pin-sub">JKL</span></button>
+                    <button class="pin-btn" onclick="pinPress('6')">6<span class="pin-sub">MNO</span></button>
+                    <button class="pin-btn" onclick="pinPress('7')">7<span class="pin-sub">PQRS</span></button>
+                    <button class="pin-btn" onclick="pinPress('8')">8<span class="pin-sub">TUV</span></button>
+                    <button class="pin-btn" onclick="pinPress('9')">9<span class="pin-sub">WXYZ</span></button>
+                    <button class="pin-btn backspace" onclick="pinBackspace()">⌫</button>
+                    <button class="pin-btn" onclick="pinPress('0')">0</button>
+                    <button class="pin-btn enter-btn" onclick="submitMemberPin()">Enter</button>
+                </div>
+
+                <button class="btn btn-secondary btn-small" style="width:100%; margin-top:16px;" onclick="backToUsername()">← Back</button>
+                <p id="loginError3" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- COACH DASHBOARD -->
+    <div id="coachDashboard" class="hidden">
+        <div class="header">
+            <h1>Coach Dashboard</h1>
+            <button class="btn btn-secondary btn-small" onclick="logout()">Logout</button>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchCoachTab('members')">Members</button>
+            <button class="nav-tab" onclick="switchCoachTab('feed')">Community Feed</button>
+        </div>
+        <div id="coachMembersTab">
+            <div class="card">
+                <div class="header">
+                    <h2>Members</h2>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-small" onclick="showGroupChallengeModal()">+ Create Group Challenge</button>
+                        <button class="btn btn-small" onclick="showAddMemberModal()">+ Add Member</button>
+                    </div>
+                </div>
+                <div id="membersList" class="member-list"></div>
+            </div>
+        </div>
+        <div id="coachFeedTab" class="hidden">
+            <div class="card">
+                <h2>Community Activity</h2>
+                <div id="coachFeed"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEMBER DASHBOARD -->
+    <div id="memberDashboard" class="hidden">
+        <div class="header">
+            <h1 id="memberWelcome"></h1>
+            <button class="btn btn-secondary btn-small" onclick="logout()">Logout</button>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab" onclick="switchMemberTab('challenges')">My Challenges</button>
+            <button class="nav-tab active" onclick="switchMemberTab('community')">Community</button>
+        </div>
+        <div id="memberChallengesTab" class="hidden">
+            <div class="card">
+                <h2>Active Challenges</h2>
+                <div id="memberChallenges"></div>
+            </div>
+        </div>
+        <div id="memberCommunityTab">
+            <div class="card">
+                <h2>Members</h2>
+                <div id="communityMembers"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD MEMBER MODAL -->
+<div id="addMemberModal" class="modal">
+    <div class="modal-content">
+        <h2>Add New Member</h2>
+        <label>Full Name</label>
+        <input type="text" id="newMemberName" placeholder="e.g. Sarah">
+        <label>Username</label>
+        <input type="text" id="newMemberUsername" placeholder="e.g. sarah">
+        <p id="addMemberError" style="color:#f56565; font-size:14px; margin-top:-8px; margin-bottom:8px; display:none;"></p>
+        <label>4-Digit PIN</label>
+        <input type="text" id="newMemberPin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric">
+        <div class="pin-info">Members will log in with their <strong>username</strong> + this <strong>4-digit PIN</strong>. Easy to remember!</div>
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button class="btn" onclick="addMember()">Add Member</button>
+            <button class="btn btn-secondary" onclick="closeModal('addMemberModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ASSIGN CHALLENGE MODAL -->
+<div id="assignChallengeModal" class="modal">
+    <div class="modal-content">
+        <h2>Assign Challenge</h2>
+        <p id="assignToMember" style="margin-bottom:16px; background:#edf2f7; padding:10px 14px; border-radius:8px; font-weight:600; color:#2d3748; text-align:center;"></p>
+        <label>Category</label>
+        <select id="challengeCategory">
+            <option value="movement">🏋️ Movement</option>
+            <option value="food">🥗 Food</option>
+            <option value="sleep">😴 Sleep</option>
+            <option value="connection">🤝 Connection</option>
+        </select>
+        <label>Challenge Title</label>
+        <input type="text" id="challengeTitle" placeholder="e.g. 30-Day Gym Streak">
+        <label>Description</label>
+        <textarea id="challengeDescription" rows="3" placeholder="Describe the challenge and expectations..."></textarea>
+        <label id="durationLabel">Duration (days)</label>
+        <input type="number" id="challengeDuration" value="30" min="1">
+        <label>Tracking Type</label>
+        <select id="challengeTrackingType" onchange="updateTrackingFields()">
+            <option value="checkin">Yes/No Check-in (daily)</option>
+            <option value="numeric">Numeric Target (daily)</option>
+            <option value="both">Both (daily check-in + numeric)</option>
+            <option value="weekly">Weekly Frequency (X times per week)</option>
+        </select>
+        <div id="numericFields" class="hidden">
+            <label>Daily Target</label>
+            <input type="number" id="challengeTarget" placeholder="e.g. 150">
+            <label>Unit</label>
+            <input type="text" id="challengeUnit" placeholder="e.g. grams, reps, hours">
+        </div>
+        <div id="weeklyFields" class="hidden">
+            <label>Times Per Week</label>
+            <input type="number" id="weeklyTarget" placeholder="e.g. 4" min="1" max="7" value="4">
+            <p style="font-size:13px; color:#718096; margin-top:-8px;">Member checks in each time they complete it. Week runs Monday-Sunday.</p>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button class="btn" onclick="assignChallenge()">Assign Challenge</button>
+            <button class="btn btn-secondary" onclick="closeModal('assignChallengeModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- MEMBER DETAIL MODAL -->
+<div id="memberDetailModal" class="modal">
+    <div class="modal-content">
+        <div class="header">
+            <h2 id="memberDetailName"></h2>
+            <button class="btn btn-small" onclick="showAssignChallengeModal()">+ Assign</button>
+        </div>
+        <div id="memberDetailChallenges"></div>
+        <button class="btn btn-secondary" onclick="closeModal('memberDetailModal')" style="margin-top:16px;">Close</button>
+    </div>
+</div>
+
+<!-- LOG PROGRESS MODAL -->
+<div id="logProgressModal" class="modal">
+    <div class="modal-content">
+        <h2 id="logProgressTitle"></h2>
+        <p id="logProgressDescription" style="margin-bottom:16px; color:#718096;"></p>
+        <div id="checkinField">
+            <label>Did you complete this today?</label>
+            <div style="display:flex; gap:12px;">
+                <button class="btn" onclick="logProgress(true)">Yes ✓</button>
+                <button class="btn btn-secondary" onclick="closeModal('logProgressModal')">Cancel</button>
+            </div>
+        </div>
+        <div id="numericField" class="hidden">
+            <label id="numericLabel">Enter value:</label>
+            <input type="number" id="numericValue" placeholder="0" inputmode="numeric">
+            <div style="display:flex; gap:12px; margin-top:16px;">
+                <button class="btn" onclick="logNumericProgress()">Log Progress</button>
+                <button class="btn btn-secondary" onclick="closeModal('logProgressModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+        <h2>Confirm Delete</h2>
+        <p id="deleteConfirmMessage" style="margin:16px 0; color:#4a5568;"></p>
+        <p style="color:#e53e3e; font-weight:600; margin-bottom:16px;">⚠️ This will delete all progress for this challenge.</p>
+        <div style="display:flex; gap:12px;">
+            <button class="btn btn-danger" onclick="confirmDelete()">Yes, Remove Challenge</button>
+            <button class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- GROUP CHALLENGE MODAL -->
+<div id="groupChallengeModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <h2>Create Group Challenge</h2>
+        
+        <!-- Challenge Details -->
+        <label>Challenge Title</label>
+        <input type="text" id="groupChallengeTitle" placeholder="e.g. Go to gym 4x per week">
+        
+        <label>Description</label>
+        <textarea id="groupChallengeDescription" placeholder="What does success look like?" style="min-height:60px;"></textarea>
+        
+        <label>Category</label>
+        <select id="groupChallengeCategory">
+            <option value="movement">Movement</option>
+            <option value="food">Food</option>
+            <option value="sleep">Sleep</option>
+            <option value="connection">Connection</option>
+        </select>
+        
+        <label>Tracking Type</label>
+        <select id="groupChallengeTrackingType" onchange="updateGroupTrackingFields()">
+            <option value="checkin">Yes/No Check-in (daily)</option>
+            <option value="numeric">Numeric Target (daily)</option>
+            <option value="both">Both Check-in + Numeric (daily)</option>
+            <option value="weekly">Weekly Frequency (X times per week)</option>
+        </select>
+        
+        <div id="groupNumericFields" class="hidden">
+            <label>Daily Target</label>
+            <input type="number" id="groupChallengeTarget" placeholder="e.g. 50">
+            <label>Unit</label>
+            <input type="text" id="groupChallengeUnit" placeholder="e.g. burpees, pushups, minutes">
+        </div>
+        
+        <div id="groupWeeklyFields" class="hidden">
+            <label>Times Per Week</label>
+            <input type="number" id="groupWeeklyTarget" placeholder="e.g. 4" min="1" max="7" value="4">
+            <p style="color:#718096; font-size:14px; margin-top:-8px;">Week runs Monday - Sunday</p>
+        </div>
+        
+        <label id="groupDurationLabel">Duration (days)</label>
+        <input type="number" id="groupChallengeDuration" value="30" min="1">
+        
+        <!-- Member Selection -->
+        <label style="margin-top:16px;">Assign to Members</label>
+        <div id="groupMemberSelection" style="max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#f7fafc;">
+            <!-- Will be populated with checkboxes -->
+        </div>
+        
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button class="btn" onclick="assignGroupChallenge()">Assign to Selected Members</button>
+            <button class="btn btn-secondary" onclick="closeModal('groupChallengeModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- CHALLENGE DETAIL MODAL (community view) -->
+<div id="challengeDetailModal" class="modal">
+    <div class="modal-content">
+        <h2 id="challengeDetailTitle"></h2>
+        <div id="challengeDetailContent"></div>
+        <button class="btn btn-secondary" onclick="closeModal('challengeDetailModal')" style="margin-top:16px;">Close</button>
+    </div>
+</div>
+
+<script>
+// ─── FIREBASE SETUP ───────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCQmv7UXXmnBSoX56CNK1eqBUcdRMc_8So",
+  authDomain: "challenge-tracker-3e18a.firebaseapp.com",
+  projectId: "challenge-tracker-3e18a",
+  storageBucket: "challenge-tracker-3e18a.firebasestorage.app",
+  messagingSenderId: "213385786255",
+  appId: "1:213385786255:web:64490842e77541f4d491fa"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ─── DATA ─────────────────────────────────────
+let data = {
+    users: [],
+    challenges: [],
+    logs: [],
+    feed: []
+};
+let currentUser = null;
+let selectedMemberId = null;
+let selectedChallengeId = null;
+let currentPin = '';
+let dataLoaded = false;
+
+// Load data from Firestore
+async function initializeData() {
+    try {
+        // Load users
+        const usersSnapshot = await db.collection('users').get();
+        data.users = usersSnapshot.docs.map(doc => {
+            const userData = doc.data();
+            return { ...userData, id: doc.id }; // Ensure id is set from document ID
+        });
+        
+        // Load challenges
+        const challengesSnapshot = await db.collection('challenges').get();
+        data.challenges = challengesSnapshot.docs.map(doc => {
+            const challengeData = doc.data();
+            return { ...challengeData, id: doc.id }; // Ensure id is set from document ID
+        });
+        
+        // Load logs
+        const logsSnapshot = await db.collection('logs').get();
+        data.logs = logsSnapshot.docs.map(doc => {
+            const logData = doc.data();
+            return { ...logData, id: doc.id }; // Ensure id is set from document ID
+        });
+        
+        // Load feed
+        const feedSnapshot = await db.collection('feed').orderBy('timestamp', 'desc').limit(100).get();
+        data.feed = feedSnapshot.docs.map(doc => {
+            const feedData = doc.data();
+            return { ...feedData, id: doc.id }; // Ensure id is set from document ID
+        });
+        
+        console.log('Loaded users:', data.users);
+        
+        // Ensure coach exists
+        if (!data.users.find(u => u.username === 'coach')) {
+            await db.collection('users').doc('coach').set({
+                username: 'coach',
+                password: 'coach123',
+                name: 'Coach',
+                role: 'coach'
+            });
+            data.users.push({ id: 'coach', username: 'coach', password: 'coach123', name: 'Coach', role: 'coach' });
+        }
+        
+        dataLoaded = true;
+        console.log('Data loaded from Firebase');
+        
+        // Hide loading screen, show login
+        document.getElementById('loadingScreen').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Error connecting to database. Please refresh the page.');
+    }
+}
+
+// Save user to Firestore
+async function saveUser(user) {
+    try {
+        await db.collection('users').doc(user.id.toString()).set({
+            username: user.username,
+            pin: user.pin,
+            name: user.name,
+            role: user.role,
+            password: user.password || null
+        });
+    } catch (error) {
+        console.error('Error saving user:', error);
+    }
+}
+
+// Save challenge to Firestore
+async function saveChallenge(challenge) {
+    try {
+        await db.collection('challenges').doc(challenge.id.toString()).set({
+            memberId: challenge.memberId,
+            title: challenge.title,
+            description: challenge.description,
+            duration: challenge.duration,
+            category: challenge.category,
+            trackingType: challenge.trackingType,
+            target: challenge.target,
+            unit: challenge.unit,
+            weeklyTarget: challenge.weeklyTarget,
+            startDate: challenge.startDate,
+            active: challenge.active
+        });
+    } catch (error) {
+        console.error('Error saving challenge:', error);
+    }
+}
+
+// Save log to Firestore
+async function saveLog(log) {
+    try {
+        await db.collection('logs').doc(log.id.toString()).set({
+            challengeId: log.challengeId,
+            memberId: log.memberId,
+            date: log.date,
+            completed: log.completed,
+            value: log.value
+        });
+    } catch (error) {
+        console.error('Error saving log:', error);
+    }
+}
+
+// Save feed item to Firestore
+async function saveFeedItem(item) {
+    try {
+        await db.collection('feed').doc(item.id.toString()).set(item);
+    } catch (error) {
+        console.error('Error saving feed item:', error);
+    }
+}
+
+// Delete from Firestore
+async function deleteFromFirestore(collection, id) {
+    try {
+        await db.collection(collection).doc(id.toString()).delete();
+    } catch (error) {
+        console.error('Error deleting:', error);
+    }
+}
+
+// Initialize on page load
+initializeData();
+
+// Smart save function - syncs all data to Firebase
+async function saveData() {
+    if (!dataLoaded) return; // Don't save before initial load completes
+    
+    try {
+        // Sync all users
+        for (const user of data.users) {
+            const id = String(user.id);
+            await db.collection('users').doc(id).set({
+                username: user.username || '',
+                pin: user.pin || '',
+                name: user.name || '',
+                role: user.role || 'member',
+                password: user.password || null
+            }, { merge: true });
+        }
+        
+        // Sync all challenges
+        for (const challenge of data.challenges) {
+            const id = String(challenge.id);
+            await db.collection('challenges').doc(id).set({
+                memberId: String(challenge.memberId),
+                title: challenge.title || '',
+                description: challenge.description || '',
+                duration: challenge.duration || 0,
+                category: challenge.category || 'movement',
+                trackingType: challenge.trackingType || 'checkin',
+                target: challenge.target || null,
+                unit: challenge.unit || null,
+                weeklyTarget: challenge.weeklyTarget || null,
+                startDate: challenge.startDate || new Date().toISOString(),
+                active: challenge.active !== false
+            }, { merge: true });
+        }
+        
+        // Sync all logs
+        for (const log of data.logs) {
+            const id = String(log.id);
+            await db.collection('logs').doc(id).set({
+                challengeId: String(log.challengeId),
+                memberId: String(log.memberId),
+                date: log.date || '',
+                completed: log.completed || false,
+                value: log.value || null
+            }, { merge: true });
+        }
+        
+        // Sync feed (limit to last 100)
+        const recentFeed = data.feed.slice(0, 100);
+        for (const item of recentFeed) {
+            const id = String(item.id);
+            await db.collection('feed').doc(id).set(item, { merge: true });
+        }
+        
+        console.log('Data synced to Firebase');
+    } catch (error) {
+        console.error('Error saving to Firebase:', error);
+    }
+}
+
+
+// ─── LOGIN FLOW ───────────────────────────────
+function showStep(id) {
+    ['usernameStep','coachPasswordStep','memberPinStep'].forEach(s => document.getElementById(s).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function clearErrors() {
+    ['loginError','loginError2','loginError3'].forEach(id => document.getElementById(id).style.display = 'none');
+}
+
+function submitUsername() {
+    clearErrors();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    if (!username) { document.getElementById('loginError').textContent = 'Please enter a username'; document.getElementById('loginError').style.display = 'block'; return; }
+
+    const user = data.users.find(u => u.username === username);
+    if (!user) { document.getElementById('loginError').textContent = 'Username not found'; document.getElementById('loginError').style.display = 'block'; return; }
+
+    if (user.role === 'coach') {
+        showStep('coachPasswordStep');
+    } else {
+        document.getElementById('memberPinName').textContent = `Welcome, ${user.name}!`;
+        currentPin = '';
+        updatePinDots();
+        showStep('memberPinStep');
+    }
+}
+
+function backToUsername() {
+    clearErrors();
+    currentPin = '';
+    showStep('usernameStep');
+}
+
+function submitCoachPassword() {
+    clearErrors();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const password = document.getElementById('coachPassword').value;
+    const user = data.users.find(u => u.username === username && u.password === password);
+    if (user) { doLogin(user); } else {
+        document.getElementById('loginError2').textContent = 'Incorrect password';
+        document.getElementById('loginError2').style.display = 'block';
+    }
+}
+
+// PIN PAD
+function pinPress(digit) {
+    if (currentPin.length >= 4) return;
+    currentPin += digit;
+    updatePinDots();
+    if (currentPin.length === 4) submitMemberPin();
+}
+
+function pinBackspace() {
+    currentPin = currentPin.slice(0, -1);
+    updatePinDots();
+    document.getElementById('loginError3').style.display = 'none';
+}
+
+function updatePinDots() {
+    for (let i = 0; i < 4; i++) {
+        document.getElementById('dot' + i).classList.toggle('filled', i < currentPin.length);
+    }
+}
+
+function submitMemberPin() {
+    clearErrors();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const user = data.users.find(u => u.username === username && u.pin === currentPin);
+    if (user) { doLogin(user); } else {
+        document.getElementById('loginError3').textContent = 'Incorrect PIN';
+        document.getElementById('loginError3').style.display = 'block';
+        currentPin = '';
+        updatePinDots();
+    }
+}
+
+function doLogin(user) {
+    currentUser = user;
+    document.getElementById('loginScreen').classList.add('hidden');
+    if (user.role === 'coach') {
+        document.getElementById('coachDashboard').classList.remove('hidden');
+        loadCoachDashboard();
+    } else {
+        document.getElementById('memberDashboard').classList.remove('hidden');
+        loadMemberDashboard();
+    }
+}
+
+function logout() {
+    currentUser = null;
+    currentPin = '';
+    document.getElementById('coachDashboard').classList.add('hidden');
+    document.getElementById('memberDashboard').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('coachPassword').value = '';
+    clearErrors();
+    showStep('usernameStep');
+}
+
+// Enter key on username field
+document.getElementById('loginUsername').addEventListener('keypress', e => { if (e.key === 'Enter') submitUsername(); });
+document.getElementById('coachPassword').addEventListener('keypress', e => { if (e.key === 'Enter') submitCoachPassword(); });
+
+// ─── COACH TABS ───────────────────────────────
+function switchCoachTab(tab) {
+    document.querySelectorAll('#coachDashboard .nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('coachMembersTab').classList.add('hidden');
+    document.getElementById('coachFeedTab').classList.add('hidden');
+    if (tab === 'members') {
+        document.querySelectorAll('#coachDashboard .nav-tab')[0].classList.add('active');
+        document.getElementById('coachMembersTab').classList.remove('hidden');
+    } else {
+        document.querySelectorAll('#coachDashboard .nav-tab')[1].classList.add('active');
+        document.getElementById('coachFeedTab').classList.remove('hidden');
+        loadCoachFeed();
+    }
+}
+
+// ─── MEMBER TABS ──────────────────────────────
+function switchMemberTab(tab) {
+    document.querySelectorAll('#memberDashboard .nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('memberChallengesTab').classList.add('hidden');
+    document.getElementById('memberCommunityTab').classList.add('hidden');
+    if (tab === 'challenges') {
+        document.querySelectorAll('#memberDashboard .nav-tab')[0].classList.add('active');
+        document.getElementById('memberChallengesTab').classList.remove('hidden');
+    } else {
+        document.querySelectorAll('#memberDashboard .nav-tab')[1].classList.add('active');
+        document.getElementById('memberCommunityTab').classList.remove('hidden');
+        loadCommunityView();
+    }
+}
+
+// ─── COACH: MEMBERS LIST ──────────────────────
+function loadCoachDashboard() { loadMembersList(); }
+
+function loadMembersList() {
+    const el = document.getElementById('membersList');
+    const members = data.users.filter(u => u.role === 'member');
+    if (members.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:32px;">No members yet. Tap + Add Member to get started!</p>';
+        return;
+    }
+    el.innerHTML = members.map(m => {
+        const active = data.challenges.filter(c => c.memberId === m.id && c.active).length;
+        return `<div class="member-item" onclick="viewMemberDetail('${m.id}')">
+            <div class="member-info">
+                <div class="member-name">${m.name}</div>
+                <div class="member-stats">${active} active challenge${active !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="member-actions">
+                <button class="btn btn-small" onclick="event.stopPropagation(); showAssignChallengeForMember('${m.id}')">Assign</button>
+                <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteMember('${m.id}')">Delete</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function showAddMemberModal() {
+    document.getElementById('newMemberName').value = '';
+    document.getElementById('newMemberUsername').value = '';
+    document.getElementById('newMemberPin').value = '';
+    document.getElementById('addMemberError').style.display = 'none';
+    document.getElementById('addMemberError').textContent = '';
+    document.getElementById('addMemberModal').classList.add('active');
+}
+
+function addMember() {
+    const name = document.getElementById('newMemberName').value.trim();
+    const username = document.getElementById('newMemberUsername').value.trim().toLowerCase();
+    const pin = document.getElementById('newMemberPin').value.trim();
+    const errorEl = document.getElementById('addMemberError');
+    
+    // Clear any previous error
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+
+    if (!name || !username || !pin) { 
+        errorEl.textContent = 'Please fill in all fields';
+        errorEl.style.display = 'block';
+        return; 
+    }
+    
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { 
+        errorEl.textContent = 'PIN must be exactly 4 digits';
+        errorEl.style.display = 'block';
+        return; 
+    }
+    
+    // Check for duplicate username (case-insensitive)
+    if (data.users.find(u => u.username.toLowerCase() === username)) { 
+        errorEl.textContent = `Username "${username}" is already taken. Please choose a different username.`;
+        errorEl.style.display = 'block';
+        return; 
+    }
+
+    const newUser = { id: Date.now().toString(), username, pin, name, role: 'member' };
+    data.users.push(newUser);
+    saveData();
+    closeModal('addMemberModal');
+    selectedMemberId = null;
+    loadMembersList();
+}
+
+async function deleteMember(id) {
+    if (!confirm('Remove this member and all their challenges/progress?')) return;
+    
+    // Delete from Firebase
+    await db.collection('users').doc(id.toString()).delete();
+    
+    // Get all challenges for this member
+    const memberChallenges = data.challenges.filter(c => c.memberId === id);
+    for (const challenge of memberChallenges) {
+        await db.collection('challenges').doc(challenge.id.toString()).delete();
+    }
+    
+    // Get all logs for this member
+    const memberLogs = data.logs.filter(l => l.memberId === id);
+    for (const log of memberLogs) {
+        await db.collection('logs').doc(log.id.toString()).delete();
+    }
+    
+    // Get all feed items for this member
+    const memberFeed = data.feed.filter(f => f.memberId === id);
+    for (const item of memberFeed) {
+        await db.collection('feed').doc(item.id.toString()).delete();
+    }
+    
+    // Update local data
+    data.users = data.users.filter(u => u.id !== id);
+    data.challenges = data.challenges.filter(c => c.memberId !== id);
+    data.logs = data.logs.filter(l => l.memberId !== id);
+    data.feed = data.feed.filter(f => f.memberId !== id);
+    
+    loadMembersList();
+}
+
+// ─── MEMBER DETAIL (coach view) ───────────────
+function viewMemberDetail(memberId) {
+    selectedMemberId = memberId;
+    const member = data.users.find(u => u.id == memberId); // Use == instead of === to match string and number
+    if (!member) {
+        console.error('Member not found:', memberId);
+        return;
+    }
+    document.getElementById('memberDetailName').textContent = member.name;
+    const challenges = data.challenges.filter(c => c.memberId == memberId); // Use == instead of ===
+    const el = document.getElementById('memberDetailChallenges');
+    if (challenges.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:24px;">No challenges assigned yet.</p>';
+    } else {
+        el.innerHTML = challenges.map(c => {
+            const p = calculateProgress(c);
+            
+            if (c.trackingType === 'weekly') {
+                const currentWeek = p.currentWeek;
+                return `<div class="challenge-item">
+                    <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
+                    <div class="challenge-title">${c.title}</div>
+                    <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
+                    <div style="color:#4a5568; font-size:14px;">Target: ${c.weeklyTarget}x per week</div>
+                    <div style="margin:12px 0; padding:10px; background:#f7fafc; border-radius:8px;">
+                        <div style="font-size:14px; font-weight:600;">Week ${p.currentWeekIndex + 1}: ${currentWeek.count}/${currentWeek.target}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                        <span style="font-size:14px;">Overall: ${p.completed}/${p.total} weeks completed</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn btn-small" onclick="event.stopPropagation(); editChallenge(${c.id})" style="flex:1;">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteChallenge(${c.id})" style="flex:1;">Remove</button>
+                    </div>
+                </div>`;
+            }
+            
+            return `<div class="challenge-item">
+                <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
+                <div class="challenge-title">${c.title}</div>
+                <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
+                ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                    <span style="font-size:14px;">Progress: ${p.completed}/${p.total} days</span>
+                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : ''}
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="btn btn-small" onclick="event.stopPropagation(); editChallenge(${c.id})" style="flex:1;">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteChallenge(${c.id})" style="flex:1;">Remove</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    document.getElementById('memberDetailModal').classList.add('active');
+}
+
+// ─── ASSIGN CHALLENGE ─────────────────────────
+function showAssignChallengeForMember(id) { 
+    selectedMemberId = id; 
+    selectedChallengeId = null; // Clear any edit state
+    showAssignChallengeModal(); 
+}
+
+function showAssignChallengeModal() {
+    if (!selectedMemberId) return;
+    const member = data.users.find(u => u.id == selectedMemberId); // Use == instead of ===
+    
+    if (!member) {
+        console.error('Member not found:', selectedMemberId);
+        return;
+    }
+    
+    // Disable pointer events on member detail modal if it's open
+    const memberDetailModal = document.getElementById('memberDetailModal');
+    if (memberDetailModal.classList.contains('active')) {
+        memberDetailModal.style.pointerEvents = 'none';
+    }
+    
+    // Check if we're editing an existing challenge
+    if (selectedChallengeId) {
+        const challenge = data.challenges.find(c => c.id === selectedChallengeId);
+        document.getElementById('assignToMember').textContent = `Editing challenge for: ${member.name}`;
+        document.getElementById('challengeTitle').value = challenge.title;
+        document.getElementById('challengeDescription').value = challenge.description;
+        document.getElementById('challengeDuration').value = challenge.duration;
+        document.getElementById('challengeCategory').value = challenge.category;
+        document.getElementById('challengeTrackingType').value = challenge.trackingType;
+        
+        if (challenge.trackingType === 'numeric' || challenge.trackingType === 'both') {
+            document.getElementById('challengeTarget').value = challenge.target;
+            document.getElementById('challengeUnit').value = challenge.unit;
+        } else if (challenge.trackingType === 'weekly') {
+            document.getElementById('weeklyTarget').value = challenge.weeklyTarget;
+        }
+    } else {
+        // Creating new challenge
+        document.getElementById('assignToMember').textContent = `Assigning to: ${member.name}`;
+        document.getElementById('challengeTitle').value = '';
+        document.getElementById('challengeDescription').value = '';
+        document.getElementById('challengeDuration').value = '30';
+        document.getElementById('challengeCategory').value = 'movement';
+        document.getElementById('challengeTrackingType').value = 'checkin';
+        document.getElementById('challengeTarget').value = '';
+        document.getElementById('challengeUnit').value = '';
+        document.getElementById('weeklyTarget').value = '4';
+    }
+    
+    updateTrackingFields();
+    document.getElementById('assignChallengeModal').classList.add('active');
+}
+
+function editChallenge(challengeId) {
+    selectedChallengeId = challengeId;
+    showAssignChallengeModal();
+}
+
+// ─── GROUP CHALLENGE ──────────────────────────
+function showGroupChallengeModal() {
+    // Clear form
+    document.getElementById('groupChallengeTitle').value = '';
+    document.getElementById('groupChallengeDescription').value = '';
+    document.getElementById('groupChallengeCategory').value = 'movement';
+    document.getElementById('groupChallengeTrackingType').value = 'checkin';
+    document.getElementById('groupChallengeDuration').value = '30';
+    document.getElementById('groupChallengeTarget').value = '';
+    document.getElementById('groupChallengeUnit').value = '';
+    document.getElementById('groupWeeklyTarget').value = '4';
+    
+    // Populate member checkboxes
+    const members = data.users.filter(u => u.role === 'member');
+    const el = document.getElementById('groupMemberSelection');
+    
+    if (members.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:16px;">No members yet. Add members first.</p>';
+    } else {
+        el.innerHTML = members.map(m => {
+            const existingCount = data.challenges.filter(c => c.memberId === m.id && c.active).length;
+            const disabled = existingCount >= 2 ? 'disabled' : '';
+            const disabledStyle = existingCount >= 2 ? 'opacity:0.5;' : '';
+            const note = existingCount >= 2 ? '<span style="color:#e53e3e; font-size:11px;"> (2 max)</span>' : '';
+            
+            return `<label style="display:block; padding:8px 4px; margin:0; ${disabledStyle} cursor:pointer; line-height:20px;">
+                <input type="checkbox" class="group-member-checkbox" value="${m.id}" ${disabled} style="margin:0; padding:0; width:18px; height:18px; vertical-align:middle; display:inline-block;">
+                <span style="margin-left:6px; vertical-align:middle; display:inline-block;">${m.name}${note}</span>
+            </label>`;
+        }).join('');
+    }
+    
+    updateGroupTrackingFields();
+    document.getElementById('groupChallengeModal').classList.add('active');
+}
+
+function updateGroupTrackingFields() {
+    const type = document.getElementById('groupChallengeTrackingType').value;
+    document.getElementById('groupNumericFields').classList.toggle('hidden', type !== 'numeric' && type !== 'both');
+    document.getElementById('groupWeeklyFields').classList.toggle('hidden', type !== 'weekly');
+    
+    // Update duration label
+    const durationLabel = document.getElementById('groupDurationLabel');
+    if (type === 'weekly') {
+        durationLabel.textContent = 'Duration (weeks)';
+        document.getElementById('groupChallengeDuration').value = '4';
+    } else {
+        durationLabel.textContent = 'Duration (days)';
+        document.getElementById('groupChallengeDuration').value = '30';
+    }
+}
+
+function assignGroupChallenge() {
+    const title = document.getElementById('groupChallengeTitle').value.trim();
+    const description = document.getElementById('groupChallengeDescription').value.trim();
+    
+    if (!title || !description) {
+        alert('Please fill in title and description');
+        return;
+    }
+    
+    // Get selected members
+    const checkboxes = document.querySelectorAll('.group-member-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Please select at least one member');
+        return;
+    }
+    
+    const selectedMemberIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    // Build challenge template
+    const trackingType = document.getElementById('groupChallengeTrackingType').value;
+    const challengeTemplate = {
+        title,
+        description,
+        duration: parseInt(document.getElementById('groupChallengeDuration').value),
+        category: document.getElementById('groupChallengeCategory').value,
+        trackingType,
+        target: null,
+        unit: null,
+        weeklyTarget: null,
+        startDate: new Date().toISOString(),
+        active: true
+    };
+    
+    // Set type-specific fields
+    if (trackingType === 'numeric' || trackingType === 'both') {
+        challengeTemplate.target = parseFloat(document.getElementById('groupChallengeTarget').value);
+        challengeTemplate.unit = document.getElementById('groupChallengeUnit').value;
+    } else if (trackingType === 'weekly') {
+        challengeTemplate.weeklyTarget = parseInt(document.getElementById('groupWeeklyTarget').value);
+    }
+    
+    // Create a challenge for each selected member
+    selectedMemberIds.forEach(memberId => {
+        const member = data.users.find(u => u.id === memberId);
+        const challenge = {
+            ...challengeTemplate,
+            id: (Date.now() + Math.random()).toString(), // Unique ID for each
+            memberId
+        };
+        
+        data.challenges.push(challenge);
+        addToFeed({ 
+            type: 'challenge_assigned', 
+            memberId, 
+            memberName: member.name, 
+            challengeTitle: title, 
+            category: challenge.category 
+        });
+    });
+    
+    saveData();
+    closeModal('groupChallengeModal');
+    loadMembersList();
+    
+    alert(`Challenge "${title}" assigned to ${selectedMemberIds.length} member${selectedMemberIds.length !== 1 ? 's' : ''}!`);
+}
+
+function updateTrackingFields() {
+    const type = document.getElementById('challengeTrackingType').value;
+    document.getElementById('numericFields').classList.toggle('hidden', type !== 'numeric' && type !== 'both');
+    document.getElementById('weeklyFields').classList.toggle('hidden', type !== 'weekly');
+    
+    // Update duration label and default value
+    const durationLabel = document.getElementById('durationLabel');
+    const durationInput = document.getElementById('challengeDuration');
+    if (type === 'weekly') {
+        durationLabel.textContent = 'Duration (weeks)';
+        durationInput.value = '4';
+    } else {
+        durationLabel.textContent = 'Duration (days)';
+        durationInput.value = '30';
+    }
+}
+
+function assignChallenge() {
+    const title = document.getElementById('challengeTitle').value.trim();
+    const description = document.getElementById('challengeDescription').value.trim();
+    if (!title || !description) { alert('Please fill in title and description'); return; }
+    if (!selectedMemberId) { alert('Error: No member selected'); return; }
+
+    const member = data.users.find(u => u.id === selectedMemberId);
+    if (!member) { alert('Error: Member not found'); return; }
+    
+    // Check if creating a new challenge (not editing)
+    if (!selectedChallengeId) {
+        const existingChallenges = data.challenges.filter(c => c.memberId === selectedMemberId && c.active);
+        if (existingChallenges.length >= 2) {
+            alert(`${member.name} already has 2 active challenges. Please remove one before adding another, or edit an existing challenge.`);
+            return;
+        }
+    }
+
+    const trackingType = document.getElementById('challengeTrackingType').value;
+    
+    // Check if we're editing
+    if (selectedChallengeId) {
+        // Editing existing challenge - reset all progress
+        const challenge = data.challenges.find(c => c.id === selectedChallengeId);
+        
+        // Delete all logs for this challenge
+        data.logs = data.logs.filter(l => l.challengeId !== selectedChallengeId);
+        
+        // Update challenge with new values and reset start date
+        challenge.title = title;
+        challenge.description = description;
+        challenge.duration = parseInt(document.getElementById('challengeDuration').value);
+        challenge.category = document.getElementById('challengeCategory').value;
+        challenge.trackingType = trackingType;
+        challenge.startDate = new Date().toISOString(); // Reset to today
+        challenge.target = null;
+        challenge.unit = null;
+        challenge.weeklyTarget = null;
+        
+        // Set type-specific fields
+        if (trackingType === 'numeric' || trackingType === 'both') {
+            challenge.target = parseFloat(document.getElementById('challengeTarget').value);
+            challenge.unit = document.getElementById('challengeUnit').value;
+        } else if (trackingType === 'weekly') {
+            challenge.weeklyTarget = parseInt(document.getElementById('weeklyTarget').value);
+        }
+        
+        addToFeed({ type: 'challenge_assigned', memberId: selectedMemberId, memberName: member.name, challengeTitle: `${title} (updated)`, category: challenge.category });
+    } else {
+        // Creating new challenge
+        const challenge = {
+            id: Date.now().toString(),
+            memberId: selectedMemberId,
+            title, description,
+            duration: parseInt(document.getElementById('challengeDuration').value),
+            category: document.getElementById('challengeCategory').value,
+            trackingType,
+            target: null,
+            unit: null,
+            weeklyTarget: null,
+            startDate: new Date().toISOString(),
+            active: true
+        };
+        
+        // Set type-specific fields
+        if (trackingType === 'numeric' || trackingType === 'both') {
+            challenge.target = parseFloat(document.getElementById('challengeTarget').value);
+            challenge.unit = document.getElementById('challengeUnit').value;
+        } else if (trackingType === 'weekly') {
+            challenge.weeklyTarget = parseInt(document.getElementById('weeklyTarget').value);
+        }
+        
+        data.challenges.push(challenge);
+        addToFeed({ type: 'challenge_assigned', memberId: selectedMemberId, memberName: member.name, challengeTitle: title, category: challenge.category });
+    }
+    
+    saveData();
+    closeModal('assignChallengeModal');
+    
+    // Re-enable pointer events on member detail modal
+    const memberDetailModal = document.getElementById('memberDetailModal');
+    if (memberDetailModal) {
+        memberDetailModal.style.pointerEvents = 'auto';
+    }
+    
+    selectedChallengeId = null; // Clear edit state
+    if (memberDetailModal.classList.contains('active')) viewMemberDetail(selectedMemberId);
+    loadMembersList();
+}
+
+let challengeToDelete = null;
+
+function deleteChallenge(id) {
+    console.log('deleteChallenge called with id:', id);
+    
+    // Find the challenge
+    const challenge = data.challenges.find(c => c.id === id);
+    if (!challenge) {
+        console.log('Challenge not found');
+        return;
+    }
+    
+    console.log('Challenge found:', challenge.title);
+    
+    // Store the ID and show custom confirmation modal
+    challengeToDelete = id;
+    document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to remove "${challenge.title}"?`;
+    
+    // Disable pointer events on member detail modal
+    const memberDetailModal = document.getElementById('memberDetailModal');
+    if (memberDetailModal) {
+        memberDetailModal.style.pointerEvents = 'none';
+    }
+    
+    document.getElementById('deleteConfirmModal').classList.add('active');
+}
+
+async function confirmDelete() {
+    console.log('Confirm delete clicked');
+    if (!challengeToDelete) return;
+    
+    console.log('Deleting challenge:', challengeToDelete);
+    
+    // Delete from Firebase
+    await db.collection('challenges').doc(challengeToDelete.toString()).delete();
+    
+    // Delete associated logs
+    const challengeLogs = data.logs.filter(l => l.challengeId === challengeToDelete);
+    for (const log of challengeLogs) {
+        await db.collection('logs').doc(log.id.toString()).delete();
+    }
+    
+    // Update local data
+    data.challenges = data.challenges.filter(c => c.id !== challengeToDelete);
+    data.logs = data.logs.filter(l => l.challengeId !== challengeToDelete);
+    
+    // Re-enable pointer events on member detail modal
+    const memberDetailModal = document.getElementById('memberDetailModal');
+    if (memberDetailModal) {
+        memberDetailModal.style.pointerEvents = 'auto';
+    }
+    
+    closeModal('deleteConfirmModal');
+    challengeToDelete = null;
+    console.log('Challenge deleted, refreshing view');
+    viewMemberDetail(selectedMemberId);
+}
+
+// ─── PROGRESS ─────────────────────────────────
+function calculateProgress(challenge) {
+    const logs = data.logs.filter(l => l.challengeId === challenge.id);
+    
+    // Weekly frequency tracking
+    if (challenge.trackingType === 'weekly') {
+        const startDate = new Date(challenge.startDate);
+        const today = new Date();
+        
+        // Get Monday of start week
+        const startMonday = new Date(startDate);
+        startMonday.setDate(startDate.getDate() - startDate.getDay() + (startDate.getDay() === 0 ? -6 : 1));
+        startMonday.setHours(0, 0, 0, 0);
+        
+        // Calculate which week we're in (0-indexed)
+        const daysSinceStart = Math.floor((today - startMonday) / (1000 * 60 * 60 * 24));
+        const currentWeekIndex = Math.floor(daysSinceStart / 7);
+        const totalWeeks = challenge.duration;
+        
+        // Count completions per week
+        const weekStats = [];
+        for (let i = 0; i < totalWeeks; i++) {
+            const weekStart = new Date(startMonday);
+            weekStart.setDate(startMonday.getDate() + (i * 7));
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+            
+            const weekLogs = logs.filter(l => {
+                const logDate = new Date(l.date);
+                return logDate >= weekStart && logDate <= weekEnd && l.completed;
+            });
+            
+            weekStats.push({
+                weekNumber: i + 1,
+                count: weekLogs.length,
+                target: challenge.weeklyTarget,
+                complete: weekLogs.length >= challenge.weeklyTarget,
+                isCurrent: i === currentWeekIndex,
+                isPast: i < currentWeekIndex
+            });
+        }
+        
+        const weeksCompleted = weekStats.filter(w => w.complete && w.isPast).length;
+        const currentWeek = weekStats[currentWeekIndex] || { count: 0, target: challenge.weeklyTarget };
+        
+        return {
+            total: totalWeeks,
+            completed: weeksCompleted,
+            percentage: Math.min(Math.round((weeksCompleted / totalWeeks) * 100), 100),
+            streak: 0, // Not applicable for weekly
+            weekStats,
+            currentWeek,
+            currentWeekIndex
+        };
+    }
+    
+    // Daily tracking (original logic)
+    const completed = logs.filter(l => l.completed).length;
+    let streak = 0;
+    const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    for (let log of sorted) { if (log.completed) streak++; else break; }
+    return { total: challenge.duration, completed, percentage: Math.min(Math.round((completed / challenge.duration) * 100), 100), streak };
+}
+
+// ─── MEMBER DASHBOARD ─────────────────────────
+function loadMemberDashboard() {
+    document.getElementById('memberWelcome').textContent = `Welcome, ${currentUser.name}!`;
+    // Start on Community tab instead of My Challenges
+    switchMemberTab('community');
+}
+
+function loadMemberChallenges() {
+    const challenges = data.challenges.filter(c => c.memberId === currentUser.id && c.active);
+    const el = document.getElementById('memberChallenges');
+    if (challenges.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:32px;">No active challenges yet.<br>Your coach will assign challenges to you.</p>';
+        return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    el.innerHTML = challenges.map(c => {
+        const p = calculateProgress(c);
+        const todayLog = data.logs.find(l => l.challengeId === c.id && l.date === today);
+        
+        // Weekly frequency display
+        if (c.trackingType === 'weekly') {
+            const currentWeek = p.currentWeek;
+            const bars = '█'.repeat(currentWeek.count) + '░'.repeat(Math.max(0, currentWeek.target - currentWeek.count));
+            const pastWeeks = p.weekStats.filter(w => w.isPast).map(w => 
+                `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #e2e8f0;">
+                    <span>${w.complete ? '✓' : '○'} Week ${w.weekNumber}</span>
+                    <span style="color:#718096;">${w.count}/${w.target}</span>
+                </div>`
+            ).join('');
+            
+            return `<div class="challenge-item">
+                <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
+                <div class="challenge-title">${c.title}</div>
+                <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
+                <div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.weeklyTarget}x per week (Mon-Sun)</div>
+                
+                <div style="background:#f7fafc; padding:12px; border-radius:8px; margin:12px 0;">
+                    <div style="font-weight:600; margin-bottom:8px;">📅 Week ${p.currentWeekIndex + 1} of ${p.total}</div>
+                    <div style="font-size:20px; letter-spacing:4px; margin:8px 0;">${bars}</div>
+                    <div style="color:#718096; font-size:14px;">This week: ${currentWeek.count}/${currentWeek.target} times</div>
+                </div>
+                
+                ${pastWeeks ? `<div style="margin:12px 0; font-size:14px;">${pastWeeks}</div>` : ''}
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
+                    <span style="font-size:14px;">Overall: ${p.completed}/${p.total} weeks</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                
+                <button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Check In</button>
+            </div>`;
+        }
+        
+        // Daily tracking display (original)
+        return `<div class="challenge-item">
+            <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
+            <div class="challenge-title">${c.title}</div>
+            <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
+            ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
+                <span style="font-size:14px;">Progress: ${p.completed}/${p.total} days</span>
+                ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : ''}
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+            ${!todayLog
+                ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Log Today's Progress</button>`
+                : `<div style="margin-top:12px; color:#48bb78; font-weight:600;">✓ Logged for today${todayLog.value ? ': ' + todayLog.value + ' ' + c.unit : ''}</div>`}
+        </div>`;
+    }).join('');
+}
+
+function showLogProgressModal(challengeId) {
+    selectedChallengeId = challengeId;
+    const c = data.challenges.find(ch => ch.id == challengeId); // Use == instead of ===
+    if (!c) {
+        console.error('Challenge not found:', challengeId);
+        return;
+    }
+    document.getElementById('logProgressTitle').textContent = c.title;
+    document.getElementById('logProgressDescription').textContent = c.description;
+    
+    // Disable pointer events on challenge detail modal if it's open
+    const challengeDetailModal = document.getElementById('challengeDetailModal');
+    if (challengeDetailModal.classList.contains('active')) {
+        challengeDetailModal.style.pointerEvents = 'none';
+    }
+    
+    if (c.trackingType === 'weekly') {
+        // Weekly just needs a simple check-in
+        document.getElementById('checkinField').classList.remove('hidden');
+        document.getElementById('numericField').classList.add('hidden');
+    } else if (c.trackingType === 'checkin') {
+        document.getElementById('checkinField').classList.remove('hidden');
+        document.getElementById('numericField').classList.add('hidden');
+    } else {
+        document.getElementById('checkinField').classList.add('hidden');
+        document.getElementById('numericField').classList.remove('hidden');
+        document.getElementById('numericLabel').textContent = `Enter ${c.unit}:`;
+        document.getElementById('numericValue').placeholder = `Target: ${c.target} ${c.unit}`;
+        document.getElementById('numericValue').value = '';
+    }
+    document.getElementById('logProgressModal').classList.add('active');
+}
+
+function logProgress(completed) {
+    console.log('logProgress called with:', completed);
+    const c = data.challenges.find(ch => ch.id === selectedChallengeId);
+    console.log('Challenge found:', c);
+    data.logs.push({ id: Date.now().toString(), challengeId: selectedChallengeId, memberId: currentUser.id, date: new Date().toISOString().split('T')[0], completed, value: null });
+    if (completed) addToFeed({ type: 'progress_logged', memberId: currentUser.id, memberName: currentUser.name, challengeTitle: c.title, category: c.category });
+    saveData();
+    closeModal('logProgressModal');
+    
+    // Re-enable pointer events on challenge detail modal
+    const challengeDetailModal = document.getElementById('challengeDetailModal');
+    if (challengeDetailModal) {
+        challengeDetailModal.style.pointerEvents = 'auto';
+    }
+    
+    // Refresh both views
+    loadMemberChallenges();
+    loadCommunityView();
+    
+    // Reopen profile if viewing from community
+    if (challengeDetailModal.classList.contains('active')) {
+        viewPublicMemberProfile(currentUser.id);
+    }
+}
+
+function logNumericProgress() {
+    console.log('logNumericProgress called');
+    const value = parseFloat(document.getElementById('numericValue').value);
+    console.log('Value entered:', value);
+    const c = data.challenges.find(ch => ch.id === selectedChallengeId);
+    if (isNaN(value) || value < 0) { alert('Please enter a valid number'); return; }
+    const completed = c.trackingType === 'both' ? value >= c.target : true;
+    data.logs.push({ id: Date.now().toString(), challengeId: selectedChallengeId, memberId: currentUser.id, date: new Date().toISOString().split('T')[0], completed, value });
+    addToFeed({ type: 'progress_logged', memberId: currentUser.id, memberName: currentUser.name, challengeTitle: c.title, category: c.category, value, unit: c.unit });
+    saveData();
+    closeModal('logProgressModal');
+    
+    // Re-enable pointer events on challenge detail modal
+    const challengeDetailModal = document.getElementById('challengeDetailModal');
+    if (challengeDetailModal) {
+        challengeDetailModal.style.pointerEvents = 'auto';
+    }
+    
+    // Refresh both views
+    loadMemberChallenges();
+    loadCommunityView();
+    
+    // Reopen profile if viewing from community
+    if (challengeDetailModal.classList.contains('active')) {
+        viewPublicMemberProfile(currentUser.id);
+    }
+}
+
+// ─── FEED ─────────────────────────────────────
+function addToFeed(item) {
+    data.feed.unshift({ ...item, timestamp: new Date().toISOString(), id: Date.now().toString() });
+    if (data.feed.length > 100) data.feed = data.feed.slice(0, 100);
+}
+
+function renderFeed(containerId, items) {
+    const el = document.getElementById(containerId);
+    if (items.length === 0) { el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:32px;">No activity yet.</p>'; return; }
+    el.innerHTML = items.map(item => {
+        let msg = '';
+        if (item.type === 'challenge_assigned') msg = `<strong>${item.memberName}</strong> started a new <span class="challenge-category category-${item.category}">${item.category.toUpperCase()}</span> challenge: <strong>${item.challengeTitle}</strong>`;
+        else if (item.type === 'progress_logged') { msg = `<strong>${item.memberName}</strong> logged progress on <strong>${item.challengeTitle}</strong>`; if (item.value) msg += `: ${item.value} ${item.unit}`; }
+        return `<div class="feed-item"><div>${msg}</div><div class="feed-time">${new Date(item.timestamp).toLocaleString()}</div></div>`;
+    }).join('');
+}
+
+function loadCoachFeed() { renderFeed('coachFeed', data.feed); }
+
+// Generate motivational status message for a member
+function getMotivationalStatus(memberId) {
+    try {
+        const challenges = data.challenges.filter(c => c.memberId === memberId && c.active);
+        if (challenges.length === 0) return { text: 'No active challenges', color: '#a0aec0' };
+        
+        const today = new Date().toISOString().split('T')[0];
+        let bestMessage = null;
+        let priority = 0;
+        
+        for (const challenge of challenges) {
+            const progress = calculateProgress(challenge);
+            const todayLog = data.logs.find(l => l.challengeId === challenge.id && l.date === today);
+            
+            // Weekly challenges
+            if (challenge.trackingType === 'weekly' && progress.currentWeek) {
+                const currentWeek = progress.currentWeek;
+                
+                // Priority 10: Crushing it this week
+                if (currentWeek.count >= currentWeek.target && priority < 10) {
+                    bestMessage = { text: `🔥 Crushing this week: ${currentWeek.count}/${currentWeek.target}`, color: '#48bb78' };
+                    priority = 10;
+                }
+                // Priority 7: Good progress this week
+                else if (currentWeek.count >= currentWeek.target - 1 && priority < 7) {
+                    bestMessage = { text: `${currentWeek.count}/${currentWeek.target} this week - almost there!`, color: '#4299e1' };
+                    priority = 7;
+                }
+                // Priority 5: Behind this week
+                else if (currentWeek.count < currentWeek.target / 2 && currentWeek.count > 0 && priority < 5) {
+                    bestMessage = { text: `${currentWeek.count}/${currentWeek.target} this week - keep going!`, color: '#ed8936' };
+                    priority = 5;
+                }
+                // Priority 2: Haven't started this week
+                else if (currentWeek.count === 0 && priority < 2) {
+                    bestMessage = { text: `Ready to start this week!`, color: '#4299e1' };
+                    priority = 2;
+                }
+                // Priority 8: Final week push
+                if (progress.currentWeekIndex === progress.total - 1 && priority < 8) {
+                    bestMessage = { text: `Final week - finish strong! 💪`, color: '#9f7aea' };
+                    priority = 8;
+                }
+            }
+            
+            // Daily challenges - check for streaks
+            if (challenge.trackingType !== 'weekly' && progress.streak && progress.streak > 0) {
+                // Priority 12: Big streak
+                if (progress.streak >= 7 && priority < 12) {
+                    bestMessage = { text: `🔥 ${progress.streak}-day streak!`, color: '#f6ad55' };
+                    priority = 12;
+                }
+                // Priority 9: Good streak
+                else if (progress.streak >= 3 && priority < 9) {
+                    bestMessage = { text: `${progress.streak}-day streak going!`, color: '#48bb78' };
+                    priority = 9;
+                }
+            }
+            
+            // Check if logged today (all challenge types)
+            if (todayLog && todayLog.completed && priority < 6) {
+                const loggedCount = challenges.filter(c => {
+                    const log = data.logs.find(l => l.challengeId === c.id && l.date === today);
+                    return log && log.completed;
+                }).length;
+                bestMessage = { text: `✓ ${loggedCount}/${challenges.length} logged today`, color: '#48bb78' };
+                priority = 6;
+            }
+            
+            // Haven't logged today yet
+            if (!todayLog && challenge.trackingType !== 'weekly' && priority < 1) {
+                bestMessage = { text: `Ready to log today!`, color: '#4299e1' };
+                priority = 1;
+            }
+            
+            // Overall progress
+            if (progress.percentage) {
+                const percentComplete = progress.percentage;
+                if (percentComplete >= 75 && priority < 4) {
+                    bestMessage = { text: `${percentComplete}% complete - almost there!`, color: '#9f7aea' };
+                    priority = 4;
+                } else if (percentComplete >= 50 && priority < 3) {
+                    bestMessage = { text: `Halfway through - ${percentComplete}% done`, color: '#4299e1' };
+                    priority = 3;
+                } else if (percentComplete >= 25 && priority < 2) {
+                    bestMessage = { text: `${percentComplete}% complete - building momentum!`, color: '#4299e1' };
+                    priority = 2;
+                }
+            }
+            
+            // Just started
+            if (progress.completed === 0 && priority < 1) {
+                bestMessage = { text: `Let's get started! 💪`, color: '#667eea' };
+                priority = 1;
+            }
+        }
+        
+        // Default message if nothing else matched
+        if (!bestMessage) {
+            const totalChallenges = challenges.length;
+            bestMessage = { text: `${totalChallenges} active challenge${totalChallenges !== 1 ? 's' : ''} - ready to go!`, color: '#667eea' };
+        }
+        
+        return bestMessage;
+    } catch (error) {
+        console.error('Error in getMotivationalStatus:', error);
+        return { text: 'Loading...', color: '#a0aec0' };
+    }
+}
+
+// ─── COMMUNITY ────────────────────────────────
+function loadCommunityView() {
+    const el = document.getElementById('communityMembers');
+    
+    // Get current user's challenges
+    const currentUserChallenges = data.challenges.filter(c => c.memberId === currentUser.id && c.active);
+    const currentUserStatus = getMotivationalStatus(currentUser.id);
+    
+    // Get all other members
+    const otherMembers = data.users.filter(u => u.role === 'member' && u.id !== currentUser.id);
+    
+    // Build HTML with current user first (highlighted), then others
+    let currentUserChallengesList = '';
+    if (currentUserChallenges.length === 0) {
+        currentUserChallengesList = '<div style="color:#a0aec0; font-size:14px; margin-top:4px;">No active challenges</div>';
+    } else {
+        currentUserChallengesList = currentUserChallenges.map(c => 
+            `<div style="font-size:14px; margin-top:4px;">📌 ${c.title}</div>`
+        ).join('');
+    }
+    
+    let html = `<div class="member-item" onclick="viewPublicMemberProfile('${currentUser.id}')" style="background:#edf2f7; border:2px solid #667eea;">
+        <div class="member-info">
+            <div class="member-name">${currentUser.name} (You)</div>
+            ${currentUserChallengesList}
+            <div class="member-stats" style="color:${currentUserStatus.color}; font-weight:500; margin-top:8px;">${currentUserStatus.text}</div>
+        </div>
+    </div>`;
+    
+    if (otherMembers.length > 0) {
+        html += otherMembers.map(m => {
+            const challenges = data.challenges.filter(c => c.memberId === m.id && c.active);
+            const status = getMotivationalStatus(m.id);
+            
+            let challengesList = '';
+            if (challenges.length === 0) {
+                challengesList = '<div style="color:#a0aec0; font-size:14px; margin-top:4px;">No active challenges</div>';
+            } else {
+                challengesList = challenges.map(c => 
+                    `<div style="font-size:14px; margin-top:4px;">📌 ${c.title}</div>`
+                ).join('');
+            }
+            
+            return `<div class="member-item" onclick="viewPublicMemberProfile('${m.id}')">
+                <div class="member-info">
+                    <div class="member-name">${m.name}</div>
+                    ${challengesList}
+                    <div class="member-stats" style="color:${status.color}; font-weight:500; margin-top:8px;">${status.text}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    
+    el.innerHTML = html;
+}
+
+function viewPublicMemberProfile(memberId) {
+    const member = data.users.find(u => u.id === memberId);
+    const challenges = data.challenges.filter(c => c.memberId === memberId && c.active);
+    const isOwnProfile = memberId === currentUser.id;
+    
+    document.getElementById('challengeDetailTitle').textContent = isOwnProfile ? 'Your Challenges' : `${member.name}'s Challenges`;
+    const el = document.getElementById('challengeDetailContent');
+    
+    if (challenges.length === 0) { 
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:24px;">No active challenges.</p>'; 
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        el.innerHTML = challenges.map(c => {
+            const p = calculateProgress(c);
+            const todayLog = isOwnProfile ? data.logs.find(l => l.challengeId === c.id && l.date === today) : null;
+            
+            if (c.trackingType === 'weekly') {
+                const currentWeek = p.currentWeek;
+                const bars = isOwnProfile ? '█'.repeat(currentWeek.count) + '░'.repeat(Math.max(0, currentWeek.target - currentWeek.count)) : '';
+                return `<div class="challenge-item">
+                    <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
+                    <div class="challenge-title">${c.title}</div>
+                    <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
+                    <div style="color:#4a5568; font-size:14px;">Target: ${c.weeklyTarget}x per week</div>
+                    ${isOwnProfile ? `<div style="background:#f7fafc; padding:12px; border-radius:8px; margin:12px 0;">
+                        <div style="font-weight:600; margin-bottom:8px;">📅 Week ${p.currentWeekIndex + 1} of ${p.total}</div>
+                        <div style="font-size:20px; letter-spacing:4px; margin:8px 0;">${bars}</div>
+                        <div style="color:#718096; font-size:14px;">This week: ${currentWeek.count}/${currentWeek.target} times</div>
+                    </div>` : `<div style="margin:12px 0; padding:10px; background:#f7fafc; border-radius:8px;">
+                        <div style="font-size:14px;">Week ${p.currentWeekIndex + 1}: ${currentWeek.count}/${currentWeek.target}</div>
+                    </div>`}
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
+                        <span style="font-size:14px;">Overall: ${p.completed}/${p.total} weeks</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                    ${isOwnProfile ? '<button class="btn btn-small" onclick="showLogProgressModal(\'' + c.id + '\')" style="margin-top:12px; width:100%;">Check In</button>' : ''}
+                </div>`;
+            }
+            
+            return `<div class="challenge-item">
+                <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
+                <div class="challenge-title">${c.title}</div>
+                <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
+                ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
+                    <span style="font-size:14px;">Progress: ${p.completed}/${p.total} days</span>
+                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : ''}
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                ${isOwnProfile && !todayLog 
+                    ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Log Today's Progress</button>`
+                    : isOwnProfile && todayLog 
+                    ? `<div style="margin-top:12px; color:#48bb78; font-weight:600;">✓ Logged for today${todayLog.value ? ': ' + todayLog.value + ' ' + c.unit : ''}</div>`
+                    : ''}
+            </div>`;
+        }).join('');
+    }
+    document.getElementById('challengeDetailModal').classList.add('active');
+}
+
+// ─── MODALS ───────────────────────────────────
+function closeModal(id) { 
+    document.getElementById(id).classList.remove('active');
+    
+    // Re-enable pointer events on parent modals when child modals close
+    if (id === 'logProgressModal') {
+        const challengeDetailModal = document.getElementById('challengeDetailModal');
+        if (challengeDetailModal) {
+            challengeDetailModal.style.pointerEvents = 'auto';
+        }
+    }
+    
+    if (id === 'assignChallengeModal') {
+        const memberDetailModal = document.getElementById('memberDetailModal');
+        if (memberDetailModal) {
+            memberDetailModal.style.pointerEvents = 'auto';
+        }
+        selectedChallengeId = null; // Clear edit state
+    }
+    
+    if (id === 'deleteConfirmModal') {
+        const memberDetailModal = document.getElementById('memberDetailModal');
+        if (memberDetailModal) {
+            memberDetailModal.style.pointerEvents = 'auto';
+        }
+        challengeToDelete = null; // Clear delete state
+    }
+}
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { 
+    if (e.target === m) {
+        m.classList.remove('active');
+        
+        // Re-enable pointer events on parent modals
+        if (m.id === 'logProgressModal') {
+            const challengeDetailModal = document.getElementById('challengeDetailModal');
+            if (challengeDetailModal) {
+                challengeDetailModal.style.pointerEvents = 'auto';
+            }
+        }
+        
+        if (m.id === 'assignChallengeModal') {
+            const memberDetailModal = document.getElementById('memberDetailModal');
+            if (memberDetailModal) {
+                memberDetailModal.style.pointerEvents = 'auto';
+            }
+            selectedChallengeId = null; // Clear edit state
+        }
+    }
+}));
+</script>
+</body>
+</html>
