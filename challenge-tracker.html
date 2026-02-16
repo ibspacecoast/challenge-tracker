@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1605,10 +1606,6 @@ function calculateProgress(challenge) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Calculate total days elapsed
-    const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    const totalDays = Math.min(challenge.duration, daysElapsed);
-    
     const completed = logs.filter(l => l.completed).length;
     
     // Calculate true consecutive streak (only count if no missed days)
@@ -1637,9 +1634,9 @@ function calculateProgress(challenge) {
     }
     
     return { 
-        total: totalDays, 
+        total: challenge.duration, 
         completed, 
-        percentage: Math.min(Math.round((completed / totalDays) * 100), 100), 
+        percentage: Math.min(Math.round((completed / challenge.duration) * 100), 100), 
         streak 
     };
 }
@@ -1897,15 +1894,16 @@ function getMotivationalStatus(memberId) {
             
             // Overall progress
             if (progress.percentage) {
-                const percentComplete = progress.percentage;
-                if (percentComplete >= 75 && priority < 4) {
-                    bestMessage = { text: `${percentComplete}% complete - almost there!`, color: '#9f7aea' };
+                const completed = progress.completed;
+                const total = progress.total;
+                if (progress.percentage >= 75 && priority < 4) {
+                    bestMessage = { text: `${completed} out of ${total} - almost there!`, color: '#9f7aea' };
                     priority = 4;
-                } else if (percentComplete >= 50 && priority < 3) {
-                    bestMessage = { text: `Halfway through - ${percentComplete}% done`, color: '#4299e1' };
+                } else if (progress.percentage >= 50 && priority < 3) {
+                    bestMessage = { text: `Halfway through - ${completed} out of ${total}`, color: '#4299e1' };
                     priority = 3;
-                } else if (percentComplete >= 25 && priority < 2) {
-                    bestMessage = { text: `${percentComplete}% complete - building momentum!`, color: '#4299e1' };
+                } else if (progress.percentage >= 25 && priority < 2) {
+                    bestMessage = { text: `${completed} out of ${total} - building momentum!`, color: '#4299e1' };
                     priority = 2;
                 }
             }
@@ -2098,4 +2096,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-Fixed streak calculation
+
