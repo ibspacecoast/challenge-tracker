@@ -1601,11 +1601,47 @@ function calculateProgress(challenge) {
     }
     
     // Daily tracking (original logic)
+    const startDate = new Date(challenge.startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculate total days elapsed
+    const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const totalDays = Math.min(challenge.duration, daysElapsed);
+    
     const completed = logs.filter(l => l.completed).length;
+    
+    // Calculate true consecutive streak (only count if no missed days)
     let streak = 0;
-    const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
-    for (let log of sorted) { if (log.completed) streak++; else break; }
-    return { total: challenge.duration, completed, percentage: Math.min(Math.round((completed / challenge.duration) * 100), 100), streak };
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    if (sortedLogs.length > 0) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        let checkDate = new Date(todayStr);
+        
+        for (let log of sortedLogs) {
+            const logDateStr = log.date;
+            const expectedDateStr = checkDate.toISOString().split('T')[0];
+            
+            if (logDateStr === expectedDateStr && log.completed) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1); // Move to previous day
+            } else if (logDateStr === expectedDateStr && !log.completed) {
+                // They logged but didn't complete - break streak
+                break;
+            } else {
+                // Missing day - break streak
+                break;
+            }
+        }
+    }
+    
+    return { 
+        total: totalDays, 
+        completed, 
+        percentage: Math.min(Math.round((completed / totalDays) * 100), 100), 
+        streak 
+    };
 }
 
 // ─── MEMBER DASHBOARD ─────────────────────────
@@ -2062,3 +2098,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
+Fixed streak calculation
