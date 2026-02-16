@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1186,10 +1185,10 @@ function viewMemberDetail(memberId) {
                 <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
                 ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                    <span style="font-size:14px;">Progress: ${p.completed}/${p.total} days</span>
-                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : ''}
+                    <span style="font-size:14px;">Progress: ${p.totalElapsed || p.total}/${p.total} days</span>
+                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : p.completed > 0 ? `<span style="color:#48bb78; font-weight:600;">${p.completed} completed</span>` : ''}
                 </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(((p.totalElapsed || p.total) / p.total) * 100)}%"></div></div>
                 <div style="display:flex; gap:8px; margin-top:8px;">
                     <button class="btn btn-small" onclick="event.stopPropagation(); editChallenge(${c.id})" style="flex:1;">Edit</button>
                     <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteChallenge(${c.id})" style="flex:1;">Remove</button>
@@ -1605,6 +1604,11 @@ function calculateProgress(challenge) {
     const startDate = new Date(challenge.startDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Calculate days elapsed since challenge started
+    const daysElapsed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const daysElapsedCapped = Math.min(daysElapsed, challenge.duration); // Don't exceed total duration
     
     const completed = logs.filter(l => l.completed).length;
     
@@ -1634,9 +1638,10 @@ function calculateProgress(challenge) {
     }
     
     return { 
-        total: challenge.duration, 
+        total: challenge.duration, // Total duration of challenge
+        totalElapsed: daysElapsedCapped, // Days that have actually passed
         completed, 
-        percentage: Math.min(Math.round((completed / challenge.duration) * 100), 100), 
+        percentage: Math.min(Math.round((completed / daysElapsedCapped) * 100), 100), 
         streak 
     };
 }
@@ -1701,10 +1706,10 @@ function loadMemberChallenges() {
             <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
             ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
             <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                <span style="font-size:14px;">Progress: ${p.completed}/${p.total} days</span>
-                ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : ''}
+                <span style="font-size:14px;">Progress: ${p.totalElapsed || p.total}/${p.total} days</span>
+                ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : p.completed > 0 ? `<span style="color:#48bb78; font-weight:600;">${p.completed} completed</span>` : ''}
             </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(((p.totalElapsed || p.total) / p.total) * 100)}%"></div></div>
             ${!todayLog
                 ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Log Today's Progress</button>`
                 : `<div style="margin-top:12px; color:#48bb78; font-weight:600;">✓ Logged for today${todayLog.value ? ': ' + todayLog.value + ' ' + c.unit : ''}</div>`}
@@ -1892,18 +1897,20 @@ function getMotivationalStatus(memberId) {
                 priority = 1;
             }
             
-            // Overall progress
-            if (progress.percentage) {
+            // Overall progress - focus on completions
+            if (progress.completed > 0) {
                 const completed = progress.completed;
                 const total = progress.total;
-                if (progress.percentage >= 75 && priority < 4) {
-                    bestMessage = { text: `${completed} out of ${total} - almost there!`, color: '#9f7aea' };
+                
+                // Big milestone messages
+                if (completed >= total * 0.75 && priority < 4) {
+                    bestMessage = { text: `${completed} days completed - almost done!`, color: '#9f7aea' };
                     priority = 4;
-                } else if (progress.percentage >= 50 && priority < 3) {
-                    bestMessage = { text: `Halfway through - ${completed} out of ${total}`, color: '#4299e1' };
+                } else if (completed >= total * 0.5 && priority < 3) {
+                    bestMessage = { text: `${completed} days completed - halfway there!`, color: '#4299e1' };
                     priority = 3;
-                } else if (progress.percentage >= 25 && priority < 2) {
-                    bestMessage = { text: `${completed} out of ${total} - building momentum!`, color: '#4299e1' };
+                } else if (completed >= 5 && priority < 2) {
+                    bestMessage = { text: `${completed} days completed - great work!`, color: '#48bb78' };
                     priority = 2;
                 }
             }
@@ -2029,10 +2036,10 @@ function viewPublicMemberProfile(memberId) {
                 <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
                 ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
                 <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                    <span style="font-size:14px;">Progress: ${p.completed}/${p.total} days</span>
-                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : ''}
+                    <span style="font-size:14px;">Progress: ${p.totalElapsed || p.total}/${p.total} days</span>
+                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : p.completed > 0 ? `<span style="color:#48bb78; font-weight:600;">${p.completed} completed</span>` : ''}
                 </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(((p.totalElapsed || p.total) / p.total) * 100)}%"></div></div>
                 ${isOwnProfile && !todayLog 
                     ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Log Today's Progress</button>`
                     : isOwnProfile && todayLog 
@@ -2096,4 +2103,3 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-
