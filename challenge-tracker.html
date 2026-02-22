@@ -407,11 +407,11 @@
             <div id="usernameStep">
                 <label>Username</label>
                 <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="off">
-                <button class="btn" style="width:100%;" onclick="submitUsername()">Next</button>
+                <button class="btn" style="width:100%;" onclick="submitUsername()">Login</button>
                 <p id="loginError" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
             </div>
 
-            <!-- Step 2a: Coach Password (text input) -->
+            <!-- Step 2: Coach Password (text input) -->
             <div id="coachPasswordStep" class="hidden">
                 <p style="text-align:center; color:#718096; margin-bottom:16px;">Welcome back, Coach!</p>
                 <label>Password</label>
@@ -420,29 +420,6 @@
                 <button class="btn btn-secondary btn-small" style="width:100%; margin-top:8px;" onclick="backToUsername()">← Back</button>
                 <p id="loginError2" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
             </div>
-
-            <!-- Step 2b: Member PIN Pad -->
-            <div id="memberPinStep" class="hidden">
-                <p id="memberPinName" style="text-align:center; color:#718096; margin-bottom:8px;"></p>
-                <p style="text-align:center; color:#a0aec0; font-size:14px; margin-bottom:4px;">Enter your 4-digit PIN</p>
-
-                <div class="pin-display">
-                    <div class="pin-dot" id="dot0"></div>
-                    <div class="pin-dot" id="dot1"></div>
-                    <div class="pin-dot" id="dot2"></div>
-                    <div class="pin-dot" id="dot3"></div>
-                </div>
-
-                <div class="pin-pad">
-                    <button class="pin-btn" onclick="pinPress('1')">1</button>
-                    <button class="pin-btn" onclick="pinPress('2')">2</button>
-                    <button class="pin-btn" onclick="pinPress('3')">3</button>
-                    <button class="pin-btn" onclick="pinPress('4')">4<span class="pin-sub">GHI</span></button>
-                    <button class="pin-btn" onclick="pinPress('5')">5<span class="pin-sub">JKL</span></button>
-                    <button class="pin-btn" onclick="pinPress('6')">6<span class="pin-sub">MNO</span></button>
-                    <button class="pin-btn" onclick="pinPress('7')">7<span class="pin-sub">PQRS</span></button>
-                    <button class="pin-btn" onclick="pinPress('8')">8<span class="pin-sub">TUV</span></button>
-                    <button class="pin-btn" onclick="pinPress('9')">9<span class="pin-sub">WXYZ</span></button>
                     <button class="pin-btn backspace" onclick="pinBackspace()">⌫</button>
                     <button class="pin-btn" onclick="pinPress('0')">0</button>
                     <button class="pin-btn enter-btn" onclick="submitMemberPin()">Enter</button>
@@ -518,9 +495,6 @@
         <label>Username</label>
         <input type="text" id="newMemberUsername" placeholder="e.g. sarah">
         <p id="addMemberError" style="color:#f56565; font-size:14px; margin-top:-8px; margin-bottom:8px; display:none;"></p>
-        <label>4-Digit PIN</label>
-        <input type="text" id="newMemberPin" placeholder="e.g. 1234" maxlength="4" inputmode="numeric">
-        <div class="pin-info">Members will log in with their <strong>username</strong> + this <strong>4-digit PIN</strong>. Easy to remember!</div>
         <div style="display:flex; gap:12px; margin-top:16px;">
             <button class="btn" onclick="addMember()">Add Member</button>
             <button class="btn btn-secondary" onclick="closeModal('addMemberModal')">Cancel</button>
@@ -676,6 +650,16 @@
     </div>
 </div>
 
+<!-- CELEBRATION MODAL -->
+<div id="celebrationModal" class="modal">
+    <div class="modal-content" style="text-align:center; max-width:400px;">
+        <div style="font-size:60px; margin-bottom:16px;">🎉</div>
+        <h2 id="celebrationMessage" style="color:#667eea; margin-bottom:12px;"></h2>
+        <p id="celebrationDetail" style="color:#718096; font-size:16px; margin-bottom:24px;"></p>
+        <button class="btn" onclick="closeModal('celebrationModal')" style="width:100%;">Thanks!</button>
+    </div>
+</div>
+
 <!-- CHALLENGE DETAIL MODAL (community view) -->
 <div id="challengeDetailModal" class="modal">
     <div class="modal-content">
@@ -710,7 +694,6 @@ let data = {
 let currentUser = null;
 let selectedMemberId = null;
 let selectedChallengeId = null;
-let currentPin = '';
 let dataLoaded = false;
 
 // Load data from Firestore
@@ -774,7 +757,6 @@ async function saveUser(user) {
     try {
         await db.collection('users').doc(user.id.toString()).set({
             username: user.username,
-            pin: user.pin,
             name: user.name,
             role: user.role,
             password: user.password || null
@@ -851,7 +833,6 @@ async function saveData() {
             const id = String(user.id);
             await db.collection('users').doc(id).set({
                 username: user.username || '',
-                pin: user.pin || '',
                 name: user.name || '',
                 role: user.role || 'member',
                 password: user.password || null
@@ -904,7 +885,7 @@ async function saveData() {
 
 // ─── LOGIN FLOW ───────────────────────────────
 function showStep(id) {
-    ['usernameStep','coachPasswordStep','memberPinStep'].forEach(s => document.getElementById(s).classList.add('hidden'));
+    ['usernameStep','coachPasswordStep'].forEach(s => document.getElementById(s).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
 
@@ -923,10 +904,8 @@ function submitUsername() {
     if (user.role === 'coach') {
         showStep('coachPasswordStep');
     } else {
-        document.getElementById('memberPinName').textContent = `Welcome, ${user.name}!`;
-        currentPin = '';
-        updatePinDots();
-        showStep('memberPinStep');
+        // Members log in directly without PIN
+        doLogin(user);
     }
 }
 
@@ -947,38 +926,6 @@ function submitCoachPassword() {
     }
 }
 
-// PIN PAD
-function pinPress(digit) {
-    if (currentPin.length >= 4) return;
-    currentPin += digit;
-    updatePinDots();
-    if (currentPin.length === 4) submitMemberPin();
-}
-
-function pinBackspace() {
-    currentPin = currentPin.slice(0, -1);
-    updatePinDots();
-    document.getElementById('loginError3').style.display = 'none';
-}
-
-function updatePinDots() {
-    for (let i = 0; i < 4; i++) {
-        document.getElementById('dot' + i).classList.toggle('filled', i < currentPin.length);
-    }
-}
-
-function submitMemberPin() {
-    clearErrors();
-    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
-    const user = data.users.find(u => u.username === username && u.pin === currentPin);
-    if (user) { doLogin(user); } else {
-        document.getElementById('loginError3').textContent = 'Incorrect PIN';
-        document.getElementById('loginError3').style.display = 'block';
-        currentPin = '';
-        updatePinDots();
-    }
-}
-
 function doLogin(user) {
     currentUser = user;
     document.getElementById('loginScreen').classList.add('hidden');
@@ -993,7 +940,6 @@ function doLogin(user) {
 
 function logout() {
     currentUser = null;
-    currentPin = '';
     document.getElementById('coachDashboard').classList.add('hidden');
     document.getElementById('memberDashboard').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');
@@ -1065,7 +1011,6 @@ function loadMembersList() {
 function showAddMemberModal() {
     document.getElementById('newMemberName').value = '';
     document.getElementById('newMemberUsername').value = '';
-    document.getElementById('newMemberPin').value = '';
     document.getElementById('addMemberError').style.display = 'none';
     document.getElementById('addMemberError').textContent = '';
     document.getElementById('addMemberModal').classList.add('active');
@@ -1074,21 +1019,14 @@ function showAddMemberModal() {
 function addMember() {
     const name = document.getElementById('newMemberName').value.trim();
     const username = document.getElementById('newMemberUsername').value.trim().toLowerCase();
-    const pin = document.getElementById('newMemberPin').value.trim();
     const errorEl = document.getElementById('addMemberError');
     
     // Clear any previous error
     errorEl.style.display = 'none';
     errorEl.textContent = '';
 
-    if (!name || !username || !pin) { 
+    if (!name || !username) { 
         errorEl.textContent = 'Please fill in all fields';
-        errorEl.style.display = 'block';
-        return; 
-    }
-    
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { 
-        errorEl.textContent = 'PIN must be exactly 4 digits';
         errorEl.style.display = 'block';
         return; 
     }
@@ -1100,7 +1038,7 @@ function addMember() {
         return; 
     }
 
-    const newUser = { id: Date.now().toString(), username, pin, name, role: 'member' };
+    const newUser = { id: Date.now().toString(), username, name, role: 'member' };
     data.users.push(newUser);
     saveData();
     closeModal('addMemberModal');
@@ -1755,7 +1693,11 @@ function logProgress(completed) {
     const c = data.challenges.find(ch => ch.id === selectedChallengeId);
     console.log('Challenge found:', c);
     data.logs.push({ id: Date.now().toString(), challengeId: selectedChallengeId, memberId: currentUser.id, date: new Date().toISOString().split('T')[0], completed, value: null });
-    if (completed) addToFeed({ type: 'progress_logged', memberId: currentUser.id, memberName: currentUser.name, challengeTitle: c.title, category: c.category });
+    if (completed) {
+        addToFeed({ type: 'progress_logged', memberId: currentUser.id, memberName: currentUser.name, challengeTitle: c.title, category: c.category });
+        // Trigger delayed celebration
+        scheduleCelebration(c);
+    }
     saveData();
     closeModal('logProgressModal');
     
@@ -1784,6 +1726,10 @@ function logNumericProgress() {
     const completed = c.trackingType === 'both' ? value >= c.target : true;
     data.logs.push({ id: Date.now().toString(), challengeId: selectedChallengeId, memberId: currentUser.id, date: new Date().toISOString().split('T')[0], completed, value });
     addToFeed({ type: 'progress_logged', memberId: currentUser.id, memberName: currentUser.name, challengeTitle: c.title, category: c.category, value, unit: c.unit });
+    
+    // Trigger delayed celebration
+    scheduleCelebration(c);
+    
     saveData();
     closeModal('logProgressModal');
     
@@ -1801,6 +1747,49 @@ function logNumericProgress() {
     if (challengeDetailModal.classList.contains('active')) {
         viewPublicMemberProfile(currentUser.id);
     }
+}
+
+// ─── CELEBRATION ──────────────────────────────
+function scheduleCelebration(challenge) {
+    // Random delay between 5-30 seconds
+    const delay = Math.floor(Math.random() * 25000) + 5000; // 5000ms to 30000ms
+    
+    setTimeout(() => {
+        const progress = calculateProgress(challenge);
+        
+        let message = "Great job logging today! 💪";
+        let detail = "";
+        
+        // Personalize based on streak and progress
+        if (progress.streak >= 7) {
+            message = "Amazing! 7+ day streak! 🔥";
+            detail = `You're on fire! Keep that ${progress.streak}-day streak alive!`;
+        } else if (progress.streak >= 3) {
+            message = `${progress.streak}-day streak going strong! 🔥`;
+            detail = "You're building serious momentum!";
+        } else if (progress.completed >= 10) {
+            message = "10+ days completed! 🎯";
+            detail = "You're crushing this challenge!";
+        } else if (progress.completed >= 5) {
+            message = "5 days down! 💪";
+            detail = "Keep up the great work!";
+        } else {
+            // First few days
+            const messages = [
+                "Way to show up today! 👏",
+                "Consistency is key! 🔑",
+                "One day at a time! ⭐",
+                "You're building a habit! 🌱",
+                "Love the commitment! 💯"
+            ];
+            message = messages[Math.floor(Math.random() * messages.length)];
+            detail = "Every day counts!";
+        }
+        
+        document.getElementById('celebrationMessage').textContent = message;
+        document.getElementById('celebrationDetail').textContent = detail;
+        document.getElementById('celebrationModal').classList.add('active');
+    }, delay);
 }
 
 // ─── FEED ─────────────────────────────────────
@@ -2103,3 +2092,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
+update 2 22 26
