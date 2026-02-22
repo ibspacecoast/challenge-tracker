@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -107,87 +108,6 @@
         }
 
         /* PIN Pad Styles */
-        .pin-display {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin: 20px 0;
-        }
-
-        .pin-dot {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #e2e8f0;
-            border: 2px solid #cbd5e0;
-            transition: background 0.2s;
-        }
-
-        .pin-dot.filled {
-            background: #667eea;
-            border-color: #667eea;
-        }
-
-        .pin-pad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 280px;
-            margin: 0 auto;
-        }
-
-        .pin-btn {
-            background: #f7fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 18px;
-            font-size: 24px;
-            font-weight: 600;
-            color: #2d3748;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .pin-btn:hover {
-            background: #edf2f7;
-            border-color: #667eea;
-            transform: scale(1.05);
-        }
-
-        .pin-btn:active {
-            transform: scale(0.95);
-        }
-
-        .pin-btn .pin-sub {
-            font-size: 10px;
-            color: #a0aec0;
-            font-weight: 400;
-            margin-top: 2px;
-        }
-
-        .pin-btn.backspace {
-            font-size: 18px;
-        }
-
-        .pin-btn.enter-btn {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-            font-size: 16px;
-        }
-
-        .pin-btn.enter-btn:hover {
-            background: #5a67d8;
-        }
-
-        .pin-btn.enter-btn .pin-sub {
-            color: rgba(255,255,255,0.7);
-        }
-
         .member-list {
             display: grid;
             gap: 12px;
@@ -356,20 +276,6 @@
 
         .hidden { display: none !important; }
 
-        .pin-info {
-            background: #edf2f7;
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-top: 12px;
-            font-size: 13px;
-            color: #718096;
-            text-align: center;
-        }
-
-        .pin-info strong {
-            color: #4a5568;
-        }
-
         @media (max-width: 768px) {
             .member-item {
                 flex-direction: column;
@@ -419,14 +325,6 @@
                 <button class="btn" style="width:100%;" onclick="submitCoachPassword()">Login</button>
                 <button class="btn btn-secondary btn-small" style="width:100%; margin-top:8px;" onclick="backToUsername()">← Back</button>
                 <p id="loginError2" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
-            </div>
-                    <button class="pin-btn backspace" onclick="pinBackspace()">⌫</button>
-                    <button class="pin-btn" onclick="pinPress('0')">0</button>
-                    <button class="pin-btn enter-btn" onclick="submitMemberPin()">Enter</button>
-                </div>
-
-                <button class="btn btn-secondary btn-small" style="width:100%; margin-top:16px;" onclick="backToUsername()">← Back</button>
-                <p id="loginError3" style="color:#f56565; margin-top:12px; text-align:center; display:none;"></p>
             </div>
         </div>
     </div>
@@ -2092,4 +1990,3 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-update 2 22 26
