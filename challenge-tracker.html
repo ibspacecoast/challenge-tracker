@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1649,45 +1648,36 @@ function logNumericProgress() {
 
 // ─── CELEBRATION ──────────────────────────────
 function scheduleCelebration(challenge) {
-    // Random delay between 5-30 seconds
-    const delay = Math.floor(Math.random() * 25000) + 5000; // 5000ms to 30000ms
+    // Show instantly (no delay)
+    const progress = calculateProgress(challenge);
     
-    setTimeout(() => {
-        const progress = calculateProgress(challenge);
-        
-        let message = "Great job logging today! 💪";
-        let detail = "";
-        
-        // Personalize based on streak and progress
-        if (progress.streak >= 7) {
-            message = "Amazing! 7+ day streak! 🔥";
-            detail = `You're on fire! Keep that ${progress.streak}-day streak alive!`;
-        } else if (progress.streak >= 3) {
-            message = `${progress.streak}-day streak going strong! 🔥`;
-            detail = "You're building serious momentum!";
-        } else if (progress.completed >= 10) {
-            message = "10+ days completed! 🎯";
-            detail = "You're crushing this challenge!";
-        } else if (progress.completed >= 5) {
-            message = "5 days down! 💪";
-            detail = "Keep up the great work!";
-        } else {
-            // First few days
-            const messages = [
-                "Way to show up today! 👏",
-                "Consistency is key! 🔑",
-                "One day at a time! ⭐",
-                "You're building a habit! 🌱",
-                "Love the commitment! 💯"
-            ];
-            message = messages[Math.floor(Math.random() * messages.length)];
-            detail = "Every day counts!";
-        }
-        
-        document.getElementById('celebrationMessage').textContent = message;
-        document.getElementById('celebrationDetail').textContent = detail;
-        document.getElementById('celebrationModal').classList.add('active');
-    }, delay);
+    // 10 random motivational messages
+    const messages = [
+        { message: "Way to show up today! 👏", detail: "Consistency is everything!" },
+        { message: "You're crushing it! 💪", detail: "Every day counts!" },
+        { message: "Love the commitment! 🔥", detail: "Keep that momentum going!" },
+        { message: "Another day, another win! 🎯", detail: "You're building something great!" },
+        { message: "Proud of you! ⭐", detail: "Small steps lead to big changes!" },
+        { message: "That's how it's done! 💯", detail: "You're setting the standard!" },
+        { message: "Keep it going! 🚀", detail: "You're on the right track!" },
+        { message: "Locked in! 🔒", detail: "Nothing can stop you now!" },
+        { message: "Absolutely legendary! 👑", detail: "This is your time to shine!" },
+        { message: "Beast mode activated! 💥", detail: "Let's gooooo!" }
+    ];
+    
+    // Add streak-specific messages if they have a good streak
+    if (progress.streak >= 7) {
+        messages.push({ message: `${progress.streak}-day streak! 🔥🔥🔥`, detail: "You're absolutely on fire!" });
+    } else if (progress.streak >= 3) {
+        messages.push({ message: `${progress.streak} days strong! 🔥`, detail: "The streak is real!" });
+    }
+    
+    // Pick a random message
+    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+    
+    document.getElementById('celebrationMessage').textContent = randomMsg.message;
+    document.getElementById('celebrationDetail').textContent = randomMsg.detail;
+    document.getElementById('celebrationModal').classList.add('active');
 }
 
 // ─── FEED ─────────────────────────────────────
@@ -1990,4 +1980,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-version 2.1
+version 2.2
