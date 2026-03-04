@@ -992,39 +992,18 @@ function viewMemberDetail(memberId) {
     } else {
         el.innerHTML = challenges.map(c => {
             const p = calculateProgress(c);
-            
-            if (c.trackingType === 'weekly') {
-                const currentWeek = p.currentWeek;
-                return `<div class="challenge-item">
-                    <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
-                    <div class="challenge-title">${c.title}</div>
-                    <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
-                    <div style="color:#4a5568; font-size:14px;">Target: ${c.weeklyTarget}x per week</div>
-                    <div style="margin:12px 0; padding:10px; background:#f7fafc; border-radius:8px;">
-                        <div style="font-size:14px; font-weight:600;">Week ${p.currentWeekIndex + 1}: ${currentWeek.count}/${currentWeek.target}</div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                        <span style="font-size:14px;">Overall: ${p.completed}/${p.total} weeks completed</span>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn btn-small" onclick="event.stopPropagation(); editChallenge('${c.id}')" style="flex:1;">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteChallenge('${c.id}')" style="flex:1;">Remove</button>
-                    </div>
-                </div>`;
-            }
+            const progressVisual = renderProgressVisual(c, p);
             
             return `<div class="challenge-item">
                 <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
                 <div class="challenge-title">${c.title}</div>
                 <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
-                ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                    <span style="font-size:14px;">Progress: ${p.totalElapsed || p.total}/${p.total} days</span>
-                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : p.completed > 0 ? `<span style="color:#48bb78; font-weight:600;">${p.completed} completed</span>` : ''}
-                </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(((p.totalElapsed || p.total) / p.total) * 100)}%"></div></div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
+                ${c.target ? `<div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
+                ${c.trackingType === 'weekly' ? `<div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.weeklyTarget}x per week</div>` : ''}
+                
+                ${progressVisual}
+                
+                <div style="display:flex; gap:8px; margin-top:12px;">
                     <button class="btn btn-small" onclick="event.stopPropagation(); editChallenge('${c.id}')" style="flex:1;">Edit</button>
                     <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteChallenge('${c.id}')" style="flex:1;">Remove</button>
                 </div>
@@ -1481,6 +1460,123 @@ function calculateProgress(challenge) {
     };
 }
 
+// ─── VISUAL PROGRESS RENDERING ────────────────
+function renderProgressVisual(challenge, progress) {
+    if (challenge.trackingType === 'weekly') {
+        // Weekly: Show week-by-week tracker
+        return `
+            <div style="margin: 12px 0;">
+                ${progress.weekStats.map(w => {
+                    const checks = '✅ '.repeat(w.count) + '⬜ '.repeat(Math.max(0, w.target - w.count));
+                    const status = w.complete && w.isPast ? '✓ Complete' : 
+                                   w.isCurrent ? 'In Progress' : 
+                                   'Future';
+                    const statusColor = w.complete && w.isPast ? '#48bb78' : 
+                                       w.isCurrent ? '#667eea' : 
+                                       '#a0aec0';
+                    return `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #e2e8f0;">
+                        <span style="font-weight:600; color:#4a5568;">Week ${w.weekNumber}:</span>
+                        <span style="font-size:16px;">${checks}</span>
+                        <span style="color:${statusColor}; font-size:13px; font-weight:500;">(${w.count}/${w.target}) ${status}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+    } else {
+        // Daily: Show actual calendar grid
+        const startDate = new Date(challenge.startDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + challenge.duration - 1);
+        
+        const logs = data.logs.filter(l => l.challengeId === challenge.id);
+        
+        // Get the first day of the month containing the start date
+        const calendarStart = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        
+        // Get the last day of the month containing the end date
+        const calendarEnd = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+        
+        // Find which day of week the calendar starts on (0 = Sunday)
+        const firstDayOfWeek = calendarStart.getDay();
+        
+        let calendarHTML = `
+            <div style="margin: 12px 0;">
+                <div style="font-weight:600; text-align:center; margin-bottom:8px; color:#4a5568;">
+                    ${calendarStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; margin-bottom:4px;">
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">S</div>
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">M</div>
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">T</div>
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">W</div>
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">T</div>
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">F</div>
+                    <div style="text-align:center; font-size:11px; color:#718096; font-weight:600; padding:4px;">S</div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;">
+        `;
+        
+        // Add empty cells for days before the month starts
+        for (let i = 0; i < firstDayOfWeek; i++) {
+            calendarHTML += '<div style="padding:8px;"></div>';
+        }
+        
+        // Add all days in the month
+        const currentDate = new Date(calendarStart);
+        while (currentDate <= calendarEnd) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const dayNum = currentDate.getDate();
+            
+            const isInChallengePeriod = currentDate >= startDate && currentDate <= endDate;
+            const isFuture = currentDate > today;
+            const log = logs.find(l => l.date === dateStr);
+            
+            let boxStyle = '';
+            
+            if (!isInChallengePeriod) {
+                // Day outside challenge period - invisible/empty
+                boxStyle = 'background:transparent; color:#e2e8f0;';
+            } else if (isFuture) {
+                // Future day in challenge - light gray
+                boxStyle = 'background:#f7fafc; color:#a0aec0; border:1px solid #e2e8f0;';
+            } else if (log && log.completed) {
+                // Completed - green
+                boxStyle = 'background:#48bb78; color:white; border:1px solid #48bb78; font-weight:600;';
+            } else if (log && !log.completed) {
+                // Logged but not completed - red
+                boxStyle = 'background:#f56565; color:white; border:1px solid #f56565;';
+            } else {
+                // Past day, not logged - dark gray (missed)
+                boxStyle = 'background:#e2e8f0; color:#718096; border:1px solid #cbd5e0;';
+            }
+            
+            calendarHTML += `<div style="${boxStyle} padding:8px; border-radius:6px; text-align:center; font-size:13px; aspect-ratio:1; display:flex; align-items:center; justify-content:center;">${dayNum}</div>`;
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        calendarHTML += `
+                </div>
+            </div>
+        `;
+        
+        // Add legend
+        calendarHTML += `
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:8px; font-size:11px; color:#718096;">
+                <span><span style="display:inline-block; width:12px; height:12px; background:#48bb78; border-radius:3px; margin-right:4px;"></span>Done</span>
+                <span><span style="display:inline-block; width:12px; height:12px; background:#e2e8f0; border-radius:3px; margin-right:4px;"></span>Missed</span>
+                <span><span style="display:inline-block; width:12px; height:12px; background:#f7fafc; border:1px solid #e2e8f0; border-radius:3px; margin-right:4px;"></span>Future</span>
+            </div>
+        `;
+        
+        return calendarHTML;
+    }
+}
+
 // ─── MEMBER DASHBOARD ─────────────────────────
 function loadMemberDashboard() {
     document.getElementById('memberWelcome').textContent = `Welcome, ${currentUser.name}!`;
@@ -1499,54 +1595,21 @@ function loadMemberChallenges() {
     el.innerHTML = challenges.map(c => {
         const p = calculateProgress(c);
         const todayLog = data.logs.find(l => l.challengeId === c.id && l.date === today);
+        const progressVisual = renderProgressVisual(c, p);
         
-        // Weekly frequency display
-        if (c.trackingType === 'weekly') {
-            const currentWeek = p.currentWeek;
-            const bars = '█'.repeat(currentWeek.count) + '░'.repeat(Math.max(0, currentWeek.target - currentWeek.count));
-            const pastWeeks = p.weekStats.filter(w => w.isPast).map(w => 
-                `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #e2e8f0;">
-                    <span>${w.complete ? '✓' : '○'} Week ${w.weekNumber}</span>
-                    <span style="color:#718096;">${w.count}/${w.target}</span>
-                </div>`
-            ).join('');
-            
-            return `<div class="challenge-item">
-                <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
-                <div class="challenge-title">${c.title}</div>
-                <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
-                <div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.weeklyTarget}x per week (Mon-Sun)</div>
-                
-                <div style="background:#f7fafc; padding:12px; border-radius:8px; margin:12px 0;">
-                    <div style="font-weight:600; margin-bottom:8px;">📅 Week ${p.currentWeekIndex + 1} of ${p.total}</div>
-                    <div style="font-size:20px; letter-spacing:4px; margin:8px 0;">${bars}</div>
-                    <div style="color:#718096; font-size:14px;">This week: ${currentWeek.count}/${currentWeek.target} times</div>
-                </div>
-                
-                ${pastWeeks ? `<div style="margin:12px 0; font-size:14px;">${pastWeeks}</div>` : ''}
-                
-                <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                    <span style="font-size:14px;">Overall: ${p.completed}/${p.total} weeks</span>
-                </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
-                
-                <button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Check In</button>
-            </div>`;
-        }
-        
-        // Daily tracking display (original)
         return `<div class="challenge-item">
             <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
             <div class="challenge-title">${c.title}</div>
             <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
-            ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
-            <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                <span style="font-size:14px;">Progress: ${p.totalElapsed || p.total}/${p.total} days</span>
-                ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : p.completed > 0 ? `<span style="color:#48bb78; font-weight:600;">${p.completed} completed</span>` : ''}
-            </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(((p.totalElapsed || p.total) / p.total) * 100)}%"></div></div>
-            ${!todayLog
+            ${c.target ? `<div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
+            ${c.trackingType === 'weekly' ? `<div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.weeklyTarget}x per week (Mon-Sun)</div>` : ''}
+            
+            ${progressVisual}
+            
+            ${!todayLog && c.trackingType !== 'weekly'
                 ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Log Today's Progress</button>`
+                : c.trackingType === 'weekly'
+                ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Check In</button>`
                 : `<div style="margin-top:12px; color:#48bb78; font-weight:600;">✓ Logged for today${todayLog.value ? ': ' + todayLog.value + ' ' + c.unit : ''}</div>`}
         </div>`;
     }).join('');
@@ -1883,42 +1946,21 @@ function viewPublicMemberProfile(memberId) {
         el.innerHTML = challenges.map(c => {
             const p = calculateProgress(c);
             const todayLog = isOwnProfile ? data.logs.find(l => l.challengeId === c.id && l.date === today) : null;
-            
-            if (c.trackingType === 'weekly') {
-                const currentWeek = p.currentWeek;
-                const bars = isOwnProfile ? '█'.repeat(currentWeek.count) + '░'.repeat(Math.max(0, currentWeek.target - currentWeek.count)) : '';
-                return `<div class="challenge-item">
-                    <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
-                    <div class="challenge-title">${c.title}</div>
-                    <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
-                    <div style="color:#4a5568; font-size:14px;">Target: ${c.weeklyTarget}x per week</div>
-                    ${isOwnProfile ? `<div style="background:#f7fafc; padding:12px; border-radius:8px; margin:12px 0;">
-                        <div style="font-weight:600; margin-bottom:8px;">📅 Week ${p.currentWeekIndex + 1} of ${p.total}</div>
-                        <div style="font-size:20px; letter-spacing:4px; margin:8px 0;">${bars}</div>
-                        <div style="color:#718096; font-size:14px;">This week: ${currentWeek.count}/${currentWeek.target} times</div>
-                    </div>` : `<div style="margin:12px 0; padding:10px; background:#f7fafc; border-radius:8px;">
-                        <div style="font-size:14px;">Week ${p.currentWeekIndex + 1}: ${currentWeek.count}/${currentWeek.target}</div>
-                    </div>`}
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                        <span style="font-size:14px;">Overall: ${p.completed}/${p.total} weeks</span>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width:${p.percentage}%"></div></div>
-                    ${isOwnProfile ? '<button class="btn btn-small" onclick="showLogProgressModal(\'' + c.id + '\')" style="margin-top:12px; width:100%;">Check In</button>' : ''}
-                </div>`;
-            }
+            const progressVisual = renderProgressVisual(c, p);
             
             return `<div class="challenge-item">
                 <span class="challenge-category category-${c.category}">${c.category.toUpperCase()}</span>
                 <div class="challenge-title">${c.title}</div>
                 <div style="color:#718096; font-size:14px; margin:8px 0;">${c.description}</div>
-                ${c.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
-                <div style="display:flex; justify-content:space-between; align-items:center; margin:12px 0;">
-                    <span style="font-size:14px;">Progress: ${p.totalElapsed || p.total}/${p.total} days</span>
-                    ${p.streak > 0 ? `<span class="streak-badge">🔥 ${p.streak} day streak</span>` : p.completed > 0 ? `<span style="color:#48bb78; font-weight:600;">${p.completed} completed</span>` : ''}
-                </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(((p.totalElapsed || p.total) / p.total) * 100)}%"></div></div>
-                ${isOwnProfile && !todayLog 
+                ${c.target ? `<div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.target} ${c.unit}/day</div>` : ''}
+                ${c.trackingType === 'weekly' ? `<div style="color:#4a5568; font-size:14px; margin-bottom:8px;">Target: ${c.weeklyTarget}x per week</div>` : ''}
+                
+                ${progressVisual}
+                
+                ${isOwnProfile && !todayLog && c.trackingType !== 'weekly'
                     ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Log Today's Progress</button>`
+                    : isOwnProfile && c.trackingType === 'weekly'
+                    ? `<button class="btn btn-small" onclick="showLogProgressModal('${c.id}')" style="margin-top:12px; width:100%;">Check In</button>`
                     : isOwnProfile && todayLog 
                     ? `<div style="margin-top:12px; color:#48bb78; font-weight:600;">✓ Logged for today${todayLog.value ? ': ' + todayLog.value + ' ' + c.unit : ''}</div>`
                     : ''}
@@ -1980,4 +2022,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-version 2.3
+2.4
