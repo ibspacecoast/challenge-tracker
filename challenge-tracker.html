@@ -1891,9 +1891,10 @@ function loadCommunityView() {
     if (currentUserChallenges.length === 0) {
         currentUserChallengesList = '<div style="color:#a0aec0; font-size:14px; margin-top:4px;">No active challenges</div>';
     } else {
-        currentUserChallengesList = currentUserChallenges.map(c => 
-            `<div style="font-size:14px; margin-top:4px;">📌 ${c.title}</div>`
-        ).join('');
+        currentUserChallengesList = currentUserChallenges.map(c => {
+            const p = calculateProgress(c);
+            return `<div style="font-size:14px; margin-top:4px;">📌 ${c.title} <span style="font-weight:600;">(${p.percentage}%)</span></div>`;
+        }).join('');
     }
     
     let html = `<div class="member-item" onclick="viewPublicMemberProfile('${currentUser.id}')" style="background:#edf2f7; border:2px solid #667eea;">
@@ -1913,9 +1914,10 @@ function loadCommunityView() {
             if (challenges.length === 0) {
                 challengesList = '<div style="color:#a0aec0; font-size:14px; margin-top:4px;">No active challenges</div>';
             } else {
-                challengesList = challenges.map(c => 
-                    `<div style="font-size:14px; margin-top:4px;">📌 ${c.title}</div>`
-                ).join('');
+                challengesList = challenges.map(c => {
+                    const p = calculateProgress(c);
+                    return `<div style="font-size:14px; margin-top:4px;">📌 ${c.title} <span style="font-weight:600;">(${p.percentage}%)</span></div>`;
+                }).join('');
             }
             
             return `<div class="member-item" onclick="viewPublicMemberProfile('${m.id}')">
@@ -2022,4 +2024,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-2.4
+3.0
