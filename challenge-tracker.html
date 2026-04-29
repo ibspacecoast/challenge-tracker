@@ -336,18 +336,25 @@
         </div>
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="switchCoachTab('members')">Members</button>
+            <button class="nav-tab" onclick="switchCoachTab('library')">Challenge Library</button>
             <button class="nav-tab" onclick="switchCoachTab('feed')">Community Feed</button>
         </div>
         <div id="coachMembersTab">
             <div class="card">
                 <div class="header">
                     <h2>Members</h2>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn btn-small" onclick="showGroupChallengeModal()">+ Create Group Challenge</button>
-                        <button class="btn btn-small" onclick="showAddMemberModal()">+ Add Member</button>
-                    </div>
+                    <button class="btn btn-small" onclick="showAddMemberModal()">+ Add Member</button>
                 </div>
                 <div id="membersList" class="member-list"></div>
+            </div>
+        </div>
+        <div id="coachLibraryTab" class="hidden">
+            <div class="card">
+                <div class="header">
+                    <h2>Challenge Library</h2>
+                    <button class="btn btn-small" onclick="showCreateTemplateModal()">+ Create Challenge Template</button>
+                </div>
+                <div id="challengeTemplatesList"></div>
             </div>
         </div>
         <div id="coachFeedTab" class="hidden">
@@ -447,7 +454,7 @@
     <div class="modal-content">
         <div class="header">
             <h2 id="memberDetailName"></h2>
-            <button class="btn btn-small" onclick="showAssignChallengeModal()">+ Assign</button>
+            <button class="btn btn-small" onclick="showAddChallengeModal()">+ Add Challenge</button>
         </div>
         <div id="memberDetailChallenges"></div>
         <button class="btn btn-secondary" onclick="closeModal('memberDetailModal')" style="margin-top:16px;">Close</button>
@@ -490,20 +497,20 @@
     </div>
 </div>
 
-<!-- GROUP CHALLENGE MODAL -->
-<div id="groupChallengeModal" class="modal">
+<!-- CREATE TEMPLATE MODAL -->
+<div id="createTemplateModal" class="modal">
     <div class="modal-content" style="max-width: 600px;">
-        <h2>Create Group Challenge</h2>
+        <h2>Create Challenge Template</h2>
         
         <!-- Challenge Details -->
         <label>Challenge Title</label>
-        <input type="text" id="groupChallengeTitle" placeholder="e.g. Go to gym 4x per week">
+        <input type="text" id="templateTitle" placeholder="e.g. Burpees Every Day">
         
         <label>Description</label>
-        <textarea id="groupChallengeDescription" placeholder="What does success look like?" style="min-height:60px;"></textarea>
+        <textarea id="templateDescription" placeholder="What does success look like?" style="min-height:60px;"></textarea>
         
         <label>Category</label>
-        <select id="groupChallengeCategory">
+        <select id="templateCategory">
             <option value="movement">Movement</option>
             <option value="food">Food</option>
             <option value="sleep">Sleep</option>
@@ -511,38 +518,67 @@
         </select>
         
         <label>Tracking Type</label>
-        <select id="groupChallengeTrackingType" onchange="updateGroupTrackingFields()">
+        <select id="templateTrackingType" onchange="updateTemplateTrackingFields()">
             <option value="checkin">Yes/No Check-in (daily)</option>
             <option value="numeric">Numeric Target (daily)</option>
             <option value="both">Both Check-in + Numeric (daily)</option>
             <option value="weekly">Weekly Frequency (X times per week)</option>
         </select>
         
-        <div id="groupNumericFields" class="hidden">
+        <div id="templateNumericFields" class="hidden">
             <label>Daily Target</label>
-            <input type="number" id="groupChallengeTarget" placeholder="e.g. 50">
+            <input type="number" id="templateTarget" placeholder="e.g. 50">
             <label>Unit</label>
-            <input type="text" id="groupChallengeUnit" placeholder="e.g. burpees, pushups, minutes">
+            <input type="text" id="templateUnit" placeholder="e.g. burpees, pushups, minutes">
         </div>
         
-        <div id="groupWeeklyFields" class="hidden">
+        <div id="templateWeeklyFields" class="hidden">
             <label>Times Per Week</label>
-            <input type="number" id="groupWeeklyTarget" placeholder="e.g. 4" min="1" max="7" value="4">
+            <input type="number" id="templateWeeklyTarget" placeholder="e.g. 4" min="1" max="7" value="4">
             <p style="color:#718096; font-size:14px; margin-top:-8px;">Week runs Monday - Sunday</p>
         </div>
         
-        <label id="groupDurationLabel">Duration (days)</label>
-        <input type="number" id="groupChallengeDuration" value="30" min="1">
+        <label id="templateDurationLabel">Duration (days)</label>
+        <input type="number" id="templateDuration" value="30" min="1">
         
-        <!-- Member Selection -->
-        <label style="margin-top:16px;">Assign to Members</label>
-        <div id="groupMemberSelection" style="max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#f7fafc;">
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button class="btn" onclick="createTemplate()">Create Template</button>
+            <button class="btn btn-secondary" onclick="closeModal('createTemplateModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ENROLL MEMBERS MODAL -->
+<div id="enrollMembersModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <h2 id="enrollModalTitle">Enroll Members</h2>
+        <p id="enrollModalDescription" style="color:#718096; margin-bottom:16px;"></p>
+        
+        <label>Select Members to Enroll:</label>
+        <div id="enrollMemberSelection" style="max-height:300px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#f7fafc; margin-top:8px;">
             <!-- Will be populated with checkboxes -->
         </div>
         
         <div style="display:flex; gap:12px; margin-top:16px;">
-            <button class="btn" onclick="assignGroupChallenge()">Assign to Selected Members</button>
-            <button class="btn btn-secondary" onclick="closeModal('groupChallengeModal')">Cancel</button>
+            <button class="btn" onclick="enrollSelectedMembers()">Enroll Selected</button>
+            <button class="btn btn-secondary" onclick="closeModal('enrollMembersModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD CHALLENGE TO MEMBER MODAL -->
+<div id="addChallengeModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <h2 id="addChallengeModalTitle">Add Challenge</h2>
+        
+        <label>Select Challenges:</label>
+        <div id="availableChallengesSelection" style="max-height:300px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#f7fafc; margin-top:8px;">
+            <!-- Will be populated with checkboxes -->
+        </div>
+        
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button class="btn" onclick="addSelectedChallenges()">Add Selected</button>
+            <button class="btn btn-secondary" onclick="closeModal('addChallengeModal')">Cancel</button>
         </div>
     </div>
 </div>
@@ -585,6 +621,7 @@ const db = firebase.firestore();
 let data = {
     users: [],
     challenges: [],
+    challengeTemplates: [],
     logs: [],
     feed: []
 };
@@ -608,6 +645,13 @@ async function initializeData() {
         data.challenges = challengesSnapshot.docs.map(doc => {
             const challengeData = doc.data();
             return { ...challengeData, id: doc.id }; // Ensure id is set from document ID
+        });
+        
+        // Load challenge templates
+        const templatesSnapshot = await db.collection('challengeTemplates').get();
+        data.challengeTemplates = templatesSnapshot.docs.map(doc => {
+            const templateData = doc.data();
+            return { ...templateData, id: doc.id }; // Ensure id is set from document ID
         });
         
         // Load logs
@@ -854,12 +898,18 @@ document.getElementById('coachPassword').addEventListener('keypress', e => { if 
 function switchCoachTab(tab) {
     document.querySelectorAll('#coachDashboard .nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('coachMembersTab').classList.add('hidden');
+    document.getElementById('coachLibraryTab').classList.add('hidden');
     document.getElementById('coachFeedTab').classList.add('hidden');
+    
     if (tab === 'members') {
         document.querySelectorAll('#coachDashboard .nav-tab')[0].classList.add('active');
         document.getElementById('coachMembersTab').classList.remove('hidden');
-    } else {
+    } else if (tab === 'library') {
         document.querySelectorAll('#coachDashboard .nav-tab')[1].classList.add('active');
+        document.getElementById('coachLibraryTab').classList.remove('hidden');
+        loadChallengeLibrary();
+    } else {
+        document.querySelectorAll('#coachDashboard .nav-tab')[2].classList.add('active');
         document.getElementById('coachFeedTab').classList.remove('hidden');
         loadCoachFeed();
     }
@@ -1073,125 +1123,348 @@ function editChallenge(challengeId) {
     showAssignChallengeModal();
 }
 
-// ─── GROUP CHALLENGE ──────────────────────────
-function showGroupChallengeModal() {
-    // Clear form
-    document.getElementById('groupChallengeTitle').value = '';
-    document.getElementById('groupChallengeDescription').value = '';
-    document.getElementById('groupChallengeCategory').value = 'movement';
-    document.getElementById('groupChallengeTrackingType').value = 'checkin';
-    document.getElementById('groupChallengeDuration').value = '30';
-    document.getElementById('groupChallengeTarget').value = '';
-    document.getElementById('groupChallengeUnit').value = '';
-    document.getElementById('groupWeeklyTarget').value = '4';
+// ─── CHALLENGE LIBRARY ────────────────────────
+let selectedTemplateId = null;
+
+function loadChallengeLibrary() {
+    const el = document.getElementById('challengeTemplatesList');
     
-    // Populate member checkboxes
-    const members = data.users.filter(u => u.role === 'member');
-    const el = document.getElementById('groupMemberSelection');
-    
-    if (members.length === 0) {
-        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:16px;">No members yet. Add members first.</p>';
-    } else {
-        el.innerHTML = members.map(m => {
-            const existingCount = data.challenges.filter(c => c.memberId === m.id && c.active).length;
-            const disabled = existingCount >= 2 ? 'disabled' : '';
-            const disabledStyle = existingCount >= 2 ? 'opacity:0.5;' : '';
-            const note = existingCount >= 2 ? '<span style="color:#e53e3e; font-size:11px;"> (2 max)</span>' : '';
-            
-            return `<label style="display:block; padding:8px 4px; margin:0; ${disabledStyle} cursor:pointer; line-height:20px;">
-                <input type="checkbox" class="group-member-checkbox" value="${m.id}" ${disabled} style="margin:0; padding:0; width:18px; height:18px; vertical-align:middle; display:inline-block;">
-                <span style="margin-left:6px; vertical-align:middle; display:inline-block;">${m.name}${note}</span>
-            </label>`;
-        }).join('');
+    if (data.challengeTemplates.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:32px;">No challenge templates yet. Create your first template to get started!</p>';
+        return;
     }
     
-    updateGroupTrackingFields();
-    document.getElementById('groupChallengeModal').classList.add('active');
+    el.innerHTML = data.challengeTemplates.map(template => {
+        // Count how many members are enrolled
+        const enrolledCount = data.challenges.filter(c => c.templateId === template.id && c.active).length;
+        
+        return `<div class="challenge-item" onclick="viewTemplate('${template.id}')" style="cursor:pointer;">
+            <span class="challenge-category category-${template.category}">${template.category.toUpperCase()}</span>
+            <div class="challenge-title">${template.title}</div>
+            <div style="color:#718096; font-size:14px; margin:8px 0;">${template.description}</div>
+            ${template.target ? `<div style="color:#4a5568; font-size:14px;">Target: ${template.target} ${template.unit}/day</div>` : ''}
+            ${template.trackingType === 'weekly' ? `<div style="color:#4a5568; font-size:14px;">Target: ${template.weeklyTarget}x per week</div>` : ''}
+            <div style="color:#4a5568; font-size:14px;">Duration: ${template.duration} ${template.trackingType === 'weekly' ? 'weeks' : 'days'}</div>
+            <div style="margin-top:12px; padding:8px; background:#f7fafc; border-radius:6px; font-weight:600; color:#667eea;">
+                👥 ${enrolledCount} ${enrolledCount === 1 ? 'person' : 'people'} enrolled
+            </div>
+        </div>`;
+    }).join('');
 }
 
-function updateGroupTrackingFields() {
-    const type = document.getElementById('groupChallengeTrackingType').value;
-    document.getElementById('groupNumericFields').classList.toggle('hidden', type !== 'numeric' && type !== 'both');
-    document.getElementById('groupWeeklyFields').classList.toggle('hidden', type !== 'weekly');
+function showCreateTemplateModal() {
+    // Clear form
+    document.getElementById('templateTitle').value = '';
+    document.getElementById('templateDescription').value = '';
+    document.getElementById('templateCategory').value = 'movement';
+    document.getElementById('templateTrackingType').value = 'checkin';
+    document.getElementById('templateDuration').value = '30';
+    document.getElementById('templateTarget').value = '';
+    document.getElementById('templateUnit').value = '';
+    document.getElementById('templateWeeklyTarget').value = '4';
+    
+    updateTemplateTrackingFields();
+    document.getElementById('createTemplateModal').classList.add('active');
+}
+
+function updateTemplateTrackingFields() {
+    const type = document.getElementById('templateTrackingType').value;
+    document.getElementById('templateNumericFields').classList.toggle('hidden', type !== 'numeric' && type !== 'both');
+    document.getElementById('templateWeeklyFields').classList.toggle('hidden', type !== 'weekly');
     
     // Update duration label
-    const durationLabel = document.getElementById('groupDurationLabel');
+    const durationLabel = document.getElementById('templateDurationLabel');
     if (type === 'weekly') {
         durationLabel.textContent = 'Duration (weeks)';
-        document.getElementById('groupChallengeDuration').value = '4';
+        document.getElementById('templateDuration').value = '4';
     } else {
         durationLabel.textContent = 'Duration (days)';
-        document.getElementById('groupChallengeDuration').value = '30';
+        document.getElementById('templateDuration').value = '30';
     }
 }
 
-function assignGroupChallenge() {
-    const title = document.getElementById('groupChallengeTitle').value.trim();
-    const description = document.getElementById('groupChallengeDescription').value.trim();
+async function createTemplate() {
+    const title = document.getElementById('templateTitle').value.trim();
+    const description = document.getElementById('templateDescription').value.trim();
     
     if (!title || !description) {
         alert('Please fill in title and description');
         return;
     }
     
-    // Get selected members
-    const checkboxes = document.querySelectorAll('.group-member-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('Please select at least one member');
-        return;
-    }
-    
-    const selectedMemberIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-    
-    // Build challenge template
-    const trackingType = document.getElementById('groupChallengeTrackingType').value;
-    const challengeTemplate = {
+    const trackingType = document.getElementById('templateTrackingType').value;
+    const template = {
+        id: Date.now().toString(),
         title,
         description,
-        duration: parseInt(document.getElementById('groupChallengeDuration').value),
-        category: document.getElementById('groupChallengeCategory').value,
+        duration: parseInt(document.getElementById('templateDuration').value),
+        category: document.getElementById('templateCategory').value,
         trackingType,
         target: null,
         unit: null,
         weeklyTarget: null,
-        startDate: new Date().toISOString(),
-        active: true
+        createdAt: new Date().toISOString()
     };
     
     // Set type-specific fields
     if (trackingType === 'numeric' || trackingType === 'both') {
-        challengeTemplate.target = parseFloat(document.getElementById('groupChallengeTarget').value);
-        challengeTemplate.unit = document.getElementById('groupChallengeUnit').value;
+        template.target = parseFloat(document.getElementById('templateTarget').value);
+        template.unit = document.getElementById('templateUnit').value;
     } else if (trackingType === 'weekly') {
-        challengeTemplate.weeklyTarget = parseInt(document.getElementById('groupWeeklyTarget').value);
+        template.weeklyTarget = parseInt(document.getElementById('templateWeeklyTarget').value);
     }
     
-    // Create a challenge for each selected member
-    selectedMemberIds.forEach(memberId => {
-        const member = data.users.find(u => u.id === memberId);
-        const challenge = {
-            ...challengeTemplate,
-            id: (Date.now() + Math.random()).toString(), // Unique ID for each
-            memberId
-        };
-        
-        data.challenges.push(challenge);
-        addToFeed({ 
-            type: 'challenge_assigned', 
-            memberId, 
-            memberName: member.name, 
-            challengeTitle: title, 
-            category: challenge.category 
-        });
-    });
-    
-    saveData();
-    closeModal('groupChallengeModal');
-    loadMembersList();
-    
-    alert(`Challenge "${title}" assigned to ${selectedMemberIds.length} member${selectedMemberIds.length !== 1 ? 's' : ''}!`);
+    // Save to Firebase
+    try {
+        await db.collection('challengeTemplates').doc(template.id).set(template);
+        data.challengeTemplates.push(template);
+        closeModal('createTemplateModal');
+        loadChallengeLibrary();
+        alert(`Template "${title}" created!`);
+    } catch (error) {
+        console.error('Error creating template:', error);
+        alert('Error creating template. Please try again.');
+    }
 }
 
+function viewTemplate(templateId) {
+    selectedTemplateId = templateId;
+    const template = data.challengeTemplates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    document.getElementById('enrollModalTitle').textContent = `Enroll Members in "${template.title}"`;
+    document.getElementById('enrollModalDescription').textContent = template.description;
+    
+    // Get all members and check who's already enrolled
+    const members = data.users.filter(u => u.role === 'member');
+    const enrolledMemberIds = data.challenges
+        .filter(c => c.templateId === templateId && c.active)
+        .map(c => c.memberId);
+    
+    const el = document.getElementById('enrollMemberSelection');
+    
+    if (members.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:16px;">No members yet. Add members first.</p>';
+    } else {
+        el.innerHTML = members.map(m => {
+            const isEnrolled = enrolledMemberIds.includes(m.id);
+            const currentChallenges = data.challenges.filter(c => c.memberId === m.id && c.active).length;
+            const canEnroll = !isEnrolled && currentChallenges < 2;
+            const disabled = !canEnroll ? 'disabled' : '';
+            const disabledStyle = !canEnroll ? 'opacity:0.5;' : '';
+            
+            let note = '';
+            if (isEnrolled) note = '<span style="color:#48bb78; font-size:11px;"> ✓ Already enrolled</span>';
+            else if (currentChallenges >= 2) note = '<span style="color:#e53e3e; font-size:11px;"> (2 max)</span>';
+            
+            return `<label style="display:block; padding:8px; margin:0; ${disabledStyle} cursor:pointer;">
+                <input type="checkbox" class="enroll-member-checkbox" value="${m.id}" ${disabled} ${isEnrolled ? 'checked' : ''} style="margin:0; padding:0; width:18px; height:18px; vertical-align:middle; display:inline-block;">
+                <span style="margin-left:8px; vertical-align:middle; display:inline-block;">${m.name}${note}</span>
+            </label>`;
+        }).join('');
+    }
+    
+    document.getElementById('enrollMembersModal').classList.add('active');
+}
+
+async function enrollSelectedMembers() {
+    if (!selectedTemplateId) return;
+    
+    const template = data.challengeTemplates.find(t => t.id === selectedTemplateId);
+    if (!template) return;
+    
+    // Get checked checkboxes
+    const checkboxes = document.querySelectorAll('.enroll-member-checkbox:checked');
+    const selectedMemberIds = Array.from(checkboxes)
+        .filter(cb => !cb.disabled)
+        .map(cb => cb.value);
+    
+    if (selectedMemberIds.length === 0) {
+        alert('No new members selected to enroll');
+        return;
+    }
+    
+    // Create challenges for selected members
+    for (const memberId of selectedMemberIds) {
+        // Check if already enrolled
+        const alreadyEnrolled = data.challenges.find(c => c.templateId === selectedTemplateId && c.memberId === memberId && c.active);
+        if (alreadyEnrolled) continue;
+        
+        const member = data.users.find(u => u.id === memberId);
+        const challenge = {
+            id: (Date.now() + Math.random()).toString(),
+            memberId,
+            templateId: selectedTemplateId,
+            title: template.title,
+            description: template.description,
+            duration: template.duration,
+            category: template.category,
+            trackingType: template.trackingType,
+            target: template.target,
+            unit: template.unit,
+            weeklyTarget: template.weeklyTarget,
+            startDate: new Date().toISOString(),
+            active: true
+        };
+        
+        // Save to Firebase
+        try {
+            await db.collection('challenges').doc(challenge.id).set({
+                memberId: challenge.memberId,
+                templateId: challenge.templateId,
+                title: challenge.title,
+                description: challenge.description,
+                duration: challenge.duration,
+                category: challenge.category,
+                trackingType: challenge.trackingType,
+                target: challenge.target,
+                unit: challenge.unit,
+                weeklyTarget: challenge.weeklyTarget,
+                startDate: challenge.startDate,
+                active: challenge.active
+            });
+            
+            data.challenges.push(challenge);
+            addToFeed({ 
+                type: 'challenge_assigned', 
+                memberId, 
+                memberName: member.name, 
+                challengeTitle: template.title, 
+                category: template.category 
+            });
+        } catch (error) {
+            console.error('Error enrolling member:', error);
+        }
+    }
+    
+    closeModal('enrollMembersModal');
+    loadChallengeLibrary();
+    alert(`${selectedMemberIds.length} member${selectedMemberIds.length !== 1 ? 's' : ''} enrolled!`);
+    selectedTemplateId = null;
+}
+
+// Way 1: Member-first enrollment
+function showAddChallengeModal() {
+    if (!selectedMemberId) return;
+    
+    const member = data.users.find(u => u.id == selectedMemberId);
+    if (!member) return;
+    
+    document.getElementById('addChallengeModalTitle').textContent = `Add Challenge to ${member.name}`;
+    
+    // Get member's current challenges
+    const memberChallenges = data.challenges.filter(c => c.memberId == selectedMemberId && c.active);
+    const memberTemplateIds = memberChallenges.map(c => c.templateId);
+    const currentCount = memberChallenges.length;
+    
+    const el = document.getElementById('availableChallengesSelection');
+    
+    if (data.challengeTemplates.length === 0) {
+        el.innerHTML = '<p style="color:#a0aec0; text-align:center; padding:16px;">No challenge templates available. Create a template first.</p>';
+    } else {
+        el.innerHTML = data.challengeTemplates.map(template => {
+            const alreadyHas = memberTemplateIds.includes(template.id);
+            const atLimit = currentCount >= 2;
+            const canAdd = !alreadyHas && !atLimit;
+            const disabled = !canAdd ? 'disabled' : '';
+            const disabledStyle = !canAdd ? 'opacity:0.5;' : '';
+            
+            let note = '';
+            if (alreadyHas) note = '<span style="color:#48bb78; font-size:11px;"> ✓ Already has this</span>';
+            else if (atLimit) note = '<span style="color:#e53e3e; font-size:11px;"> (2 max)</span>';
+            
+            return `<label style="display:block; padding:8px; margin:0; ${disabledStyle} cursor:pointer; border-bottom:1px solid #e2e8f0;">
+                <input type="checkbox" class="add-challenge-checkbox" value="${template.id}" ${disabled} style="margin:0; padding:0; width:18px; height:18px; vertical-align:middle; display:inline-block;">
+                <div style="margin-left:28px; display:inline-block; vertical-align:middle;">
+                    <div style="font-weight:600; color:#2d3748;">${template.title}${note}</div>
+                    <div style="font-size:12px; color:#718096; margin-top:2px;">${template.description}</div>
+                    <div style="font-size:11px; color:#a0aec0; margin-top:2px;">
+                        ${template.duration} ${template.trackingType === 'weekly' ? 'weeks' : 'days'}
+                        ${template.trackingType === 'weekly' ? ` • ${template.weeklyTarget}x/week` : ''}
+                        ${template.target ? ` • ${template.target} ${template.unit}/day` : ''}
+                    </div>
+                </div>
+            </label>`;
+        }).join('');
+    }
+    
+    document.getElementById('addChallengeModal').classList.add('active');
+}
+
+async function addSelectedChallenges() {
+    if (!selectedMemberId) return;
+    
+    const member = data.users.find(u => u.id == selectedMemberId);
+    if (!member) return;
+    
+    // Get checked checkboxes
+    const checkboxes = document.querySelectorAll('.add-challenge-checkbox:checked');
+    const selectedTemplateIds = Array.from(checkboxes)
+        .filter(cb => !cb.disabled)
+        .map(cb => cb.value);
+    
+    if (selectedTemplateIds.length === 0) {
+        alert('No challenges selected');
+        return;
+    }
+    
+    // Create challenges from selected templates
+    for (const templateId of selectedTemplateIds) {
+        const template = data.challengeTemplates.find(t => t.id === templateId);
+        if (!template) continue;
+        
+        const challenge = {
+            id: (Date.now() + Math.random()).toString(),
+            memberId: selectedMemberId,
+            templateId: templateId,
+            title: template.title,
+            description: template.description,
+            duration: template.duration,
+            category: template.category,
+            trackingType: template.trackingType,
+            target: template.target,
+            unit: template.unit,
+            weeklyTarget: template.weeklyTarget,
+            startDate: new Date().toISOString(),
+            active: true
+        };
+        
+        // Save to Firebase
+        try {
+            await db.collection('challenges').doc(challenge.id).set({
+                memberId: challenge.memberId,
+                templateId: challenge.templateId,
+                title: challenge.title,
+                description: challenge.description,
+                duration: challenge.duration,
+                category: challenge.category,
+                trackingType: challenge.trackingType,
+                target: challenge.target,
+                unit: challenge.unit,
+                weeklyTarget: challenge.weeklyTarget,
+                startDate: challenge.startDate,
+                active: challenge.active
+            });
+            
+            data.challenges.push(challenge);
+            addToFeed({ 
+                type: 'challenge_assigned', 
+                memberId: selectedMemberId, 
+                memberName: member.name, 
+                challengeTitle: template.title, 
+                category: template.category 
+            });
+        } catch (error) {
+            console.error('Error adding challenge:', error);
+        }
+    }
+    
+    closeModal('addChallengeModal');
+    viewMemberDetail(selectedMemberId); // Refresh the member detail view
+    alert(`${selectedTemplateIds.length} challenge${selectedTemplateIds.length !== 1 ? 's' : ''} added!`);
+}
+
+// ─── ASSIGN CHALLENGE (Single Member - Old System) ────────
 function updateTrackingFields() {
     const type = document.getElementById('challengeTrackingType').value;
     document.getElementById('numericFields').classList.toggle('hidden', type !== 'numeric' && type !== 'both');
@@ -2024,4 +2297,4 @@ document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e =
 </script>
 </body>
 </html>
-3.0
+3.1
